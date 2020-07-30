@@ -6,6 +6,7 @@
 
 set(FLUID_BIN fluid)
 set(FLUID_BIN_SRC
+	lexer.c
 	fluid.c
 )
 
