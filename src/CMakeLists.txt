@@ -6,13 +6,13 @@
 
 set(FLUID_BIN fluid)
 set(FLUID_BIN_SRC
-	lexer.c
 	fluid.c
+	lexer.c
+	parser.c
 )
 
 add_executable(${FLUID_BIN} ${FLUID_BIN_SRC})
 target_include_directories(${FLUID_BIN} PRIVATE
-	${CMAKE_CURRENT_SOURCE_DIR}/include/
 	${CMAKE_SOURCE_DIR}/utils/include/
 )
 target_link_libraries(${FLUID_BIN} utils)
