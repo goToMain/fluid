@@ -7,13 +7,21 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <utils/strutils.h>
+#include "parser.h"
 
-#include "lexer.h"
+void parser_setup(fluid_t *ctx)
+{
+	ARG_UNUSED(ctx);
+}
 
-int parser_check(lexer_t *lex)
+int parser_parse(fluid_t *lex)
 {
 	ARG_UNUSED(lex);
 
 	return 0;
+}
+
+void parseer_teardown(fluid_t *ctx)
+{
+	ARG_UNUSED(ctx);
 }

@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <utils/strutils.h>
-
+#include "fluid.h"
 #include "lexer.h"
 
 #define TOK_BUF_MAXLEN       256
-
 
 enum lexer_state_e {
 	LEXER_BLOCK_STATE_DATA,
@@ -18,35 +16,36 @@ enum lexer_state_e {
 	LEXER_BLOCK_STATE_ERROR,
 };
 
-void lexer_init(lexer_t *ctx, char *buf, size_t size)
+void lexer_free_block(lexer_block_t *blk)
 {
-	ctx->buf = buf;
-	ctx->buf_size = size;
-	list_init(&ctx->blocks);
+	if (blk->type == LEXER_BLOCK_TAG) {
+		safe_free(blk->tok.tag.keyword);
+		safe_free(blk->tok.tag.tokens);
+	}
+	else if (blk->type == LEXER_BLOCK_OBJECT) {
+		safe_free(blk->tok.obj.identifier);
+		safe_free(blk->tok.obj.filters);
+	}
+	else if (blk->type == LEXER_BLOCK_DATA) {
+		string_destroy(&blk->content);
+	}
+	free(blk);
 }
 
-void lexer_free(lexer_t *ctx)
+void lexer_free_blocks(fluid_t *ctx)
 {
 	lexer_block_t *blk;
 	node_t *p;
 
-	p = ctx->blocks.head;
+	p = ctx->lex_blocks.head;
 	while (p) {
 		blk = CONTAINER_OF(p, lexer_block_t, node);
-		if (blk->type == LEXER_BLOCK_TAG) {
-			safe_free(blk->tok.tag.keyword);
-			safe_free(blk->tok.tag.tokens);
-		}
-		if (blk->type == LEXER_BLOCK_OBJECT) {
-			safe_free(blk->tok.obj.identifier);
-			safe_free(blk->tok.obj.filters);
-		}
-		free(blk);
 		p = p->next;
+		lexer_free_block(blk);
 	}
 }
 
-int lexer_add_block(lexer_t *ctx, enum lexer_block_e type,
+int lexer_add_block(fluid_t *ctx, enum lexer_block_e type,
 		    size_t pos, size_t len)
 {
 	lexer_block_t *blk;
@@ -56,19 +55,18 @@ int lexer_add_block(lexer_t *ctx, enum lexer_block_e type,
 		return -1;
 	}
 
-	blk = calloc(1, sizeof(lexer_block_t));
+	blk = safe_zalloc(sizeof(lexer_block_t));
 	if (blk == NULL) {
 		printf("Lexer alloc failed\n");
 		exit(-1);
 	}
 	blk->type = type;
-	blk->position = pos;
-	blk->length = len;
-	list_append(&ctx->blocks, &blk->node);
+	string_create(&blk->content, ctx->buf + pos, len);
+	list_append(&ctx->lex_blocks, &blk->node);
 	return 0;
 }
 
-int lexer_lex_blocks(lexer_t *ctx)
+int lexer_lex_blocks(fluid_t *ctx)
 {
 	char c1, c2;
 	size_t current = 0, start = 0;
@@ -80,17 +78,15 @@ int lexer_lex_blocks(lexer_t *ctx)
 		switch(state) {
 		case LEXER_BLOCK_STATE_DATA:
 			if (c1 == '{' && c2 == '%') {
-				/* +1 to exclude c1 from this block */
 				lexer_add_block(ctx, LEXER_BLOCK_DATA, start,
-						current - start - 1);
+						current - start);
 				start = current;
 				state = LEXER_BLOCK_STATE_TAG;
 				break;
 			}
 			if (c1 == '{' && c2 == '{') {
-				/* +1 to exclude c1 from this block */
 				lexer_add_block(ctx, LEXER_BLOCK_DATA, start,
-						current - start - 1);
+						current - start);
 				start = current;
 				state = LEXER_BLOCK_STATE_OBJECT;
 				break;
@@ -128,11 +124,34 @@ int lexer_lex_blocks(lexer_t *ctx)
 	return 0;
 }
 
-int lexer_tokenize_tag(lexer_block_t *blk, char *buf)
+void tag_clean(string_t *s)
+{
+	if (s->buf[0] == '{' && s->buf[1] == '%' &&
+	    s->buf[s->len - 2] == '%' && s->buf[s->len - 1] == '}') {
+		s->buf[0] = ' ';
+		s->buf[1] = ' ';
+		s->buf[s->len - 2] = ' ';
+		s->buf[s->len - 1] = ' ';
+	}
+}
+
+void obj_clean(string_t *s)
+{
+	if (s->buf[0] == '{' && s->buf[1] == '{' &&
+	    s->buf[s->len - 2] == '}' && s->buf[s->len - 1] == '}') {
+		s->buf[0] = ' ';
+		s->buf[1] = ' ';
+		s->buf[s->len - 2] = ' ';
+		s->buf[s->len - 1] = ' ';
+	}
+}
+
+int lexer_tokenize_tag(lexer_block_t *blk)
 {
 	char *tok, *rest;
 
-	tok = strtok_r(buf, " ", &rest);
+	tag_clean(&blk->content);
+	tok = strtok_r(blk->content.buf, " ", &rest);
 	if (tok == NULL) {
 		printf("lexer: failed to extract keyword\n");
 		return -1;
@@ -142,11 +161,12 @@ int lexer_tokenize_tag(lexer_block_t *blk, char *buf)
 	return 0;
 }
 
-int lexer_tokenize_object(lexer_block_t *blk, char *buf)
+int lexer_tokenize_object(lexer_block_t *blk)
 {
 	char *filter, *tok, *rest;
 
-	tok = strtok_r(buf, " ", &rest);
+	obj_clean(&blk->content);
+	tok = strtok_r(blk->content.buf, " ", &rest);
 	if (tok == NULL) {
 		printf("lexer: failed to extract identifier\n");
 		return -1;
@@ -160,47 +180,38 @@ int lexer_tokenize_object(lexer_block_t *blk, char *buf)
 	return 0;
 }
 
-int lexer_lex_tokens(lexer_t *ctx)
+int lexer_lex_tokens(fluid_t *ctx)
 {
 	lexer_block_t *blk;
-	node_t *p = ctx->blocks.head;
-	char buf[TOK_BUF_MAXLEN + 1];
-	size_t len;
+	node_t *p = ctx->lex_blocks.head;
 
 	while (p) {
 		blk = CONTAINER_OF(p, lexer_block_t, node);
 		if (blk->type == LEXER_BLOCK_TAG) {
-			len = blk->length - 4;
-			if (len > TOK_BUF_MAXLEN) {
-				printf("lexer: out of local buffer space\n");
-				return -1;
-			}
-			strncpy(buf, ctx->buf + blk->position + 2, len);
-			buf[len] = '\0';
-			if (lexer_tokenize_tag(blk, buf) != 0) {
+			if (lexer_tokenize_tag(blk) != 0) {
 				printf("lexer: tokenize tag failed\n");
 				return -1;
 			}
+			string_destroy(&blk->content);
 		}
 		if (blk->type == LEXER_BLOCK_OBJECT) {
-			len = blk->length - 4;
-			if (len > TOK_BUF_MAXLEN) {
-				printf("lexer: out of local buffer space\n");
-				return -1;
-			}
-			strncpy(buf, ctx->buf + blk->position + 2, len);
-			buf[len] = '\0';
-			if (lexer_tokenize_object(blk, buf) != 0) {
+			if (lexer_tokenize_object(blk) != 0) {
 				printf("lexer: tokenize object failed\n");
 				return -1;
 			}
+			string_destroy(&blk->content);
 		}
 		p = p->next;
 	}
 	return 0;
 }
 
-int lexer_lex(lexer_t *ctx)
+void lexer_setup(fluid_t *ctx)
+{
+	list_init(&ctx->lex_blocks);
+}
+
+int lexer_lex(fluid_t *ctx)
 {
 	/* State1: Identify data/tag/object blocks */
 	if (lexer_lex_blocks(ctx) != 0) {
@@ -215,4 +226,9 @@ int lexer_lex(lexer_t *ctx)
 	}
 
 	return 0;
+}
+
+void lexer_teardown(fluid_t *ctx)
+{
+	lexer_free_blocks(ctx);
 }

@@ -41,19 +41,13 @@ typedef union {
 typedef struct {
 	node_t node;
 	enum lexer_block_e type;
-	size_t position;
-	size_t length;
+	string_t content;
 	lexer_token_t tok;
 } lexer_block_t;
 
-typedef struct {
-	char *buf;
-	size_t buf_size;
-	list_t blocks; /* list of nodes of type lexer_block_t */
-} lexer_t;
-
-void lexer_init(lexer_t *ctx, char *buf, size_t size);
-int lexer_lex(lexer_t *ctx);
-void lexer_free(lexer_t *ctx);
+void lexer_setup(fluid_t *ctx);
+int  lexer_lex(fluid_t *ctx);
+void lexer_teardown(fluid_t *ctx);
+void lexer_free_block(lexer_block_t *blk);
 
 #endif /* _LEXER_H_ */

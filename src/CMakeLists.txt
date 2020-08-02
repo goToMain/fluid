@@ -6,9 +6,10 @@
 
 set(FLUID_BIN fluid)
 set(FLUID_BIN_SRC
-	fluid.c
-	lexer.c
-	parser.c
+	fluid.c     fluid.h
+	lexer.c     lexer.h
+	liquid.c    liquid.h
+	parser.c    parser.h
 )
 
 add_executable(${FLUID_BIN} ${FLUID_BIN_SRC})
