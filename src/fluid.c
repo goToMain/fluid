@@ -27,16 +27,11 @@ fluid_t *fluid_load(const char *dirname, const char *filename)
     fd = fopen(path, "r");
     if (fd == NULL) {
         printf("fluid: failed to open '%s'\n", path);
-        free(path);
+        safe_free(path);
         return NULL;
     }
 
-    ctx = calloc(1, sizeof(fluid_t));
-    if (ctx == NULL) {
-        printf("fluid: failed alloc ctx\n");
-        goto error;
-    }
-
+    ctx = safe_calloc(1, sizeof(fluid_t));
     if (file_read_all(fd, &ctx->buf, &ctx->buf_size) != 0) {
         printf("fluid: failed to read file %s\n", filename);
         goto error;
@@ -47,7 +42,7 @@ fluid_t *fluid_load(const char *dirname, const char *filename)
         goto error;
     }
 
-    free(path);
+    safe_free(path);
     fclose(fd);
     return ctx;
 
@@ -55,18 +50,18 @@ error:
     if (ctx) {
         safe_free(ctx->filename);
         safe_free(ctx->dirname);
-        free(ctx);
+        safe_free(ctx);
     }
-    free(path);
+    safe_free(path);
     fclose(fd);
     return NULL;
 }
 
 void fluid_destroy_context(fluid_t *ctx)
 {
-    free(ctx->filename);
-    free(ctx->dirname);
-    free(ctx);
+    safe_free(ctx->filename);
+    safe_free(ctx->dirname);
+    safe_free(ctx);
 }
 
 void fluid_render_data(fluid_t *ctx)

@@ -7,8 +7,6 @@
 #include "fluid.h"
 #include "lexer.h"
 
-#define TOK_BUF_MAXLEN       256
-
 enum lexer_state_e {
     LEXER_BLOCK_STATE_DATA,
     LEXER_BLOCK_STATE_OBJECT,
@@ -16,12 +14,14 @@ enum lexer_state_e {
     LEXER_BLOCK_STATE_ERROR,
 };
 
+/* Transform "{% TAG %}" or "{{ OBJ }}" as "TAG" or "OBJ" */
 static void lexer_clean_liquid_markup(string_t *s)
 {
     s->buf[0] = ' ';
     s->buf[1] = ' ';
     s->buf[s->len - 2] = ' ';
     s->buf[s->len - 1] = ' ';
+    strip(s->buf);
 }
 
 static void lexer_block_free(lexer_block_t *blk)
@@ -34,7 +34,7 @@ static void lexer_block_free(lexer_block_t *blk)
         safe_free(blk->tok.obj.filters);
     }
     string_destroy(&blk->content);
-    free(blk);
+    safe_free(blk);
 }
 
 void lexer_remove_block(fluid_t *ctx, lexer_block_t *blk)
@@ -80,11 +80,7 @@ lexer_block_add(fluid_t *ctx, enum lexer_block_e type, size_t pos, size_t len)
         return -1;
     }
 
-    blk = calloc(1, sizeof(lexer_block_t));
-    if (blk == NULL) {
-        printf("Lexer alloc failed\n");
-        exit(-1);
-    }
+    blk = safe_calloc(1, sizeof(lexer_block_t));
     blk->type = type;
     string_create(&blk->content, ctx->buf + pos, len);
     list_append(&ctx->lex_blocks, &blk->node);
@@ -196,7 +192,7 @@ int lexer_tokenize_object(lexer_block_t *blk)
         string_destroy(&content);
         return -1;
     }
-    blk->tok.obj.identifier = strdup(tok);
+    blk->tok.obj.identifier = safe_strdup(tok);
     blk->tok.obj.filters = NULL;
     filter = strchr(rest, '|');
     if (filter != NULL) {
