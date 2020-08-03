@@ -18,33 +18,33 @@
 #include "liquid.h"
 
 enum lexer_block_e {
-	LEXER_BLOCK_NONE,
-	LEXER_BLOCK_DATA,
-	LEXER_BLOCK_OBJECT,
-	LEXER_BLOCK_TAG,
-	LEXER_BLOCK_SENTINEL,
+    LEXER_BLOCK_NONE,
+    LEXER_BLOCK_DATA,
+    LEXER_BLOCK_OBJECT,
+    LEXER_BLOCK_TAG,
+    LEXER_BLOCK_SENTINEL,
 };
 
 typedef struct {
-	enum liq_kw_e keyword;
-	char **tokens;
+    enum liq_kw_e keyword;
+    char **tokens;
 } lexer_token_tag_t;
 
 typedef struct {
-	char *identifier;
-	char **filters;
+    char *identifier;
+    char **filters;
 } lexer_token_obj_t;
 
 typedef union {
-	lexer_token_tag_t tag;
-	lexer_token_obj_t obj;
+    lexer_token_tag_t tag;
+    lexer_token_obj_t obj;
 } lexer_token_t;
 
 typedef struct {
-	node_t node;
-	enum lexer_block_e type;
-	string_t content;
-	lexer_token_t tok;
+    node_t node;
+    enum lexer_block_e type;
+    string_t content;
+    lexer_token_t tok;
 } lexer_block_t;
 
 void lexer_setup(fluid_t *ctx);

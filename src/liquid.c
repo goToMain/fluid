@@ -23,142 +23,142 @@
 #define KW_HAS_ATTR(kw, attr)          ((liq_kw[kw].attrib & (attr)) == (attr))
 
 typedef struct {
-	const char *literal;
-	uint32_t attrib;
+    const char *literal;
+    uint32_t attrib;
 } liq_kw_t;
 
 static liq_kw_t liq_kw[LIQ_KW_SENTINEL] = {
-	[LIQ_KW_NONE]            = { "NONE",        LIQ_KW_F_NONE },
-	[LIQ_KW_ASSIGN]          = { "assign",      LIQ_KW_F_BARE },
-	[LIQ_KW_BREAK]           = { "break",       LIQ_KW_F_LONE | LIQ_KW_F_ENCLOSED },
-	[LIQ_KW_CAPTURE]         = { "capture",     LIQ_KW_F_NONE },
-	[LIQ_KW_CASE]            = { "case",        LIQ_KW_F_NONE },
-	[LIQ_KW_WHEN]            = { "when",        LIQ_KW_F_ENCLOSED },
-	[LIQ_KW_COMMENT]         = { "comment",     LIQ_KW_F_LONE },
-	[LIQ_KW_CONTINUE]        = { "continue",    LIQ_KW_F_LONE | LIQ_KW_F_ENCLOSED },
-	[LIQ_KW_DECREMENT]       = { "decrement",   LIQ_KW_F_BARE },
-	[LIQ_KW_FOR]             = { "for",         LIQ_KW_F_NONE },
-	[LIQ_KW_IF]              = { "if",          LIQ_KW_F_NONE },
-	[LIQ_KW_ELSIF]           = { "elsif",       LIQ_KW_F_ENCLOSED },
-	[LIQ_KW_ELSE]            = { "else",        LIQ_KW_F_ENCLOSED },
-	[LIQ_KW_INCREMENT]       = { "increment",   LIQ_KW_F_BARE },
-	[LIQ_KW_INCLUDE]         = { "include",     LIQ_KW_F_BARE },
-	[LIQ_KW_RAW]             = { "raw",         LIQ_KW_F_LONE },
-	[LIQ_KW_UNLESS]          = { "unless",      LIQ_KW_F_NONE },
+    [LIQ_KW_NONE]            = { "NONE",        LIQ_KW_F_NONE },
+    [LIQ_KW_ASSIGN]          = { "assign",      LIQ_KW_F_BARE },
+    [LIQ_KW_BREAK]           = { "break",       LIQ_KW_F_LONE | LIQ_KW_F_ENCLOSED },
+    [LIQ_KW_CAPTURE]         = { "capture",     LIQ_KW_F_NONE },
+    [LIQ_KW_CASE]            = { "case",        LIQ_KW_F_NONE },
+    [LIQ_KW_WHEN]            = { "when",        LIQ_KW_F_ENCLOSED },
+    [LIQ_KW_COMMENT]         = { "comment",     LIQ_KW_F_LONE },
+    [LIQ_KW_CONTINUE]        = { "continue",    LIQ_KW_F_LONE | LIQ_KW_F_ENCLOSED },
+    [LIQ_KW_DECREMENT]       = { "decrement",   LIQ_KW_F_BARE },
+    [LIQ_KW_FOR]             = { "for",         LIQ_KW_F_NONE },
+    [LIQ_KW_IF]              = { "if",          LIQ_KW_F_NONE },
+    [LIQ_KW_ELSIF]           = { "elsif",       LIQ_KW_F_ENCLOSED },
+    [LIQ_KW_ELSE]            = { "else",        LIQ_KW_F_ENCLOSED },
+    [LIQ_KW_INCREMENT]       = { "increment",   LIQ_KW_F_BARE },
+    [LIQ_KW_INCLUDE]         = { "include",     LIQ_KW_F_BARE },
+    [LIQ_KW_RAW]             = { "raw",         LIQ_KW_F_LONE },
+    [LIQ_KW_UNLESS]          = { "unless",      LIQ_KW_F_NONE },
 };
 
 typedef struct {
-	enum liq_kw_e being;
-	enum liq_kw_e end;
-	enum liq_kw_e sub_kw[LIQ_BLK_SUB_KW_COUNT]; /* increase as needed */
+    enum liq_kw_e being;
+    enum liq_kw_e end;
+    enum liq_kw_e sub_kw[LIQ_BLK_SUB_KW_COUNT]; /* increase as needed */
 } liq_blk_t;
 
 static liq_blk_t liq_blk[LIQ_BLK_SENTINEL] = {
-	[LIQ_BLK_CASE]     = { LIQ_KW_CASE,    LIQ_KW_ENDIF,      { LIQ_KW_WHEN,  LIQ_KW_ELSE } },
-	[LIQ_BLK_CAPTURE]  = { LIQ_KW_CAPTURE, LIQ_KW_ENDCAPTURE, {} },
-	[LIQ_BLK_COMMENT]  = { LIQ_KW_COMMENT, LIQ_KW_ENDCOMMENT, {} },
-	[LIQ_BLK_FOR]      = { LIQ_KW_FOR,     LIQ_KW_ENDFOR,     { LIQ_KW_ELSE,  LIQ_KW_BREAK, LIQ_KW_CONTINUE }  },
-	[LIQ_BLK_IF]       = { LIQ_KW_IF,      LIQ_KW_ENDIF,      { LIQ_KW_ELSIF, LIQ_KW_ELSE } },
-	[LIQ_BLK_RAW]      = { LIQ_KW_RAW,     LIQ_KW_ENDRAW,     {} },
-	[LIQ_BLK_UNLESS]   = { LIQ_KW_UNLESS,  LIQ_KW_ENDUNLESS,  {} },
+    [LIQ_BLK_CASE]     = { LIQ_KW_CASE,    LIQ_KW_ENDIF,      { LIQ_KW_WHEN,  LIQ_KW_ELSE } },
+    [LIQ_BLK_CAPTURE]  = { LIQ_KW_CAPTURE, LIQ_KW_ENDCAPTURE, {} },
+    [LIQ_BLK_COMMENT]  = { LIQ_KW_COMMENT, LIQ_KW_ENDCOMMENT, {} },
+    [LIQ_BLK_FOR]      = { LIQ_KW_FOR,     LIQ_KW_ENDFOR,     { LIQ_KW_ELSE,  LIQ_KW_BREAK, LIQ_KW_CONTINUE }  },
+    [LIQ_BLK_IF]       = { LIQ_KW_IF,      LIQ_KW_ENDIF,      { LIQ_KW_ELSIF, LIQ_KW_ELSE } },
+    [LIQ_BLK_RAW]      = { LIQ_KW_RAW,     LIQ_KW_ENDRAW,     {} },
+    [LIQ_BLK_UNLESS]   = { LIQ_KW_UNLESS,  LIQ_KW_ENDUNLESS,  {} },
 };
 
 enum liq_kw_e liquid_get_kw(const char *literal)
 {
-	enum liq_kw_e i;
-	enum liq_blk_e j;
-	int len, is_end = 0;
+    enum liq_kw_e i;
+    enum liq_blk_e j;
+    int len, is_end = 0;
 
-	if (strncmp(literal, "end", 3) == 0) {
-		literal += 3;
-		is_end = true;
-	}
+    if (strncmp(literal, "end", 3) == 0) {
+        literal += 3;
+        is_end = true;
+    }
 
-	len = strlen(literal);
-	if (len == 0 || len >= LIQ_KW_MAXLEN) {
-		return LIQ_KW_NONE;
-	}
+    len = strlen(literal);
+    if (len == 0 || len >= LIQ_KW_MAXLEN) {
+        return LIQ_KW_NONE;
+    }
 
-	for (i = 1; i < LIQ_KW_SENTINEL; i++) {
-		if (strncmp(literal, liq_kw[i].literal, len) == 0)
-			break;
-	}
+    for (i = 1; i < LIQ_KW_SENTINEL; i++) {
+        if (strncmp(literal, liq_kw[i].literal, len) == 0)
+            break;
+    }
 
-	if (i < LIQ_KW_SENTINEL) {
-		if (!is_end)
-			return i;
-		for (j = 0; j < LIQ_BLK_SENTINEL; j++) {
-			if (liq_blk[j].being == i)
-				return liq_blk[j].end;
-		}
-	}
+    if (i < LIQ_KW_SENTINEL) {
+        if (!is_end)
+            return i;
+        for (j = 0; j < LIQ_BLK_SENTINEL; j++) {
+            if (liq_blk[j].being == i)
+                return liq_blk[j].end;
+        }
+    }
 
-	return LIQ_KW_NONE;
+    return LIQ_KW_NONE;
 }
 
 bool liquid_is_block_begin(enum liq_kw_e kw)
 {
-	enum liq_blk_e i;
+    enum liq_blk_e i;
 
-	if (kw >= LIQ_KW_SENTINEL)
-		return false;
+    if (kw >= LIQ_KW_SENTINEL)
+        return false;
 
-	for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
-		if (liq_blk[i].being == kw)
-			return true;
-	}
-	return false;
+    for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
+        if (liq_blk[i].being == kw)
+            return true;
+    }
+    return false;
 }
 
 bool liquid_is_block_end(enum liq_kw_e kw)
 {
-	enum liq_blk_e i;
+    enum liq_blk_e i;
 
-	if (kw <= LIQ_KW_SENTINEL)
-		return false;
+    if (kw <= LIQ_KW_SENTINEL)
+        return false;
 
-	for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
-		if (liq_blk[i].end == kw)
-			return true;
-	}
-	return false;
+    for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
+        if (liq_blk[i].end == kw)
+            return true;
+    }
+    return false;
 }
 
 enum liq_blk_e liquid_get_blk(enum liq_kw_e kw)
 {
-	enum liq_blk_e i;
+    enum liq_blk_e i;
 
-	for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
-		if (kw > LIQ_KW_SENTINEL && liq_blk[i].end == kw) {
-			return i;
-		}
-		else if (liq_blk[i].being == kw) {
-			return i;
-		}
-	}
+    for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
+        if (kw > LIQ_KW_SENTINEL && liq_blk[i].end == kw) {
+            return i;
+        }
+        else if (liq_blk[i].being == kw) {
+            return i;
+        }
+    }
 
-	return LIQ_BLK_NONE;
+    return LIQ_BLK_NONE;
 }
 
 bool liquid_is_valid(enum liq_blk_e parent, enum liq_kw_e kw)
 {
-	int i;
+    int i;
 
-	if (parent == LIQ_BLK_NONE) {
-		/* only a new tag_open or a bare tag can appear at level 1 */
-		return liquid_is_block_begin(kw) || KW_HAS_ATTR(kw, LIQ_KW_F_BARE);
-	}
+    if (parent == LIQ_BLK_NONE) {
+        /* only a new tag_open or a bare tag can appear at level 1 */
+        return liquid_is_block_begin(kw) || KW_HAS_ATTR(kw, LIQ_KW_F_BARE);
+    }
 
-	if (!KW_HAS_ATTR(kw, LIQ_KW_F_ENCLOSED)) {
-		/* Any block can be inside any other block */
-		return true;
-	}
+    if (!KW_HAS_ATTR(kw, LIQ_KW_F_ENCLOSED)) {
+        /* Any block can be inside any other block */
+        return true;
+    }
 
-	for (i = 0; i < LIQ_BLK_SUB_KW_COUNT; i++) {
-		if (liq_blk[parent].sub_kw[i] == kw) {
-			return true;
-		}
-	}
+    for (i = 0; i < LIQ_BLK_SUB_KW_COUNT; i++) {
+        if (liq_blk[parent].sub_kw[i] == kw) {
+            return true;
+        }
+    }
 
-	return false;
+    return false;
 }

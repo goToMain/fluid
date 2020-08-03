@@ -15,27 +15,27 @@
 
 void parser_setup(fluid_t *ctx)
 {
-	ARG_UNUSED(ctx);
+    ARG_UNUSED(ctx);
 }
 
 /* last - Liquid Abstract Syntax Tree */
 struct last_s {
-	struct last_node_s *root;
+    struct last_node_s *root;
 };
 
 struct last_node_s {
-	list_t *block;
-	int num_children;
-	struct last_node_s **children;
+    list_t *block;
+    int num_children;
+    struct last_node_s **children;
 };
 
 int parser_parse(fluid_t *ctx)
 {
-	ARG_UNUSED(ctx);
-	return 0;
+    ARG_UNUSED(ctx);
+    return 0;
 }
 
 void parser_teardown(fluid_t *ctx)
 {
-	ARG_UNUSED(ctx);
+    ARG_UNUSED(ctx);
 }

@@ -14,11 +14,11 @@
 #include <utils/strlib.h>
 
 typedef struct fluid_s {
-	char *filename;
-	char *dirname;
-	char *buf;
-	size_t buf_size;
-	list_t lex_blocks; /* list of nodes of type lexer_block_t */
+    char *filename;
+    char *dirname;
+    char *buf;
+    size_t buf_size;
+    list_t lex_blocks; /* list of nodes of type lexer_block_t */
 } fluid_t;
 
 #endif /* _FLUID_H_ */
