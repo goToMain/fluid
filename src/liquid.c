@@ -80,22 +80,48 @@ enum liq_kw_e liquid_get_kw(const char *literal)
 	}
 
 	for (i = 1; i < LIQ_KW_SENTINEL; i++) {
-		if (strncmp(literal, liq_kw[i].literal, len) == 0) {
+		if (strncmp(literal, liq_kw[i].literal, len) == 0)
 			break;
-		}
 	}
+
 	if (i < LIQ_KW_SENTINEL) {
-		if (!is_end) {
+		if (!is_end)
 			return i;
-		}
 		for (j = 0; j < LIQ_BLK_SENTINEL; j++) {
-			if (liq_blk[j].being == i) {
+			if (liq_blk[j].being == i)
 				return liq_blk[j].end;
-			}
 		}
 	}
 
 	return LIQ_KW_NONE;
+}
+
+bool liquid_is_block_begin(enum liq_kw_e kw)
+{
+	enum liq_blk_e i;
+
+	if (kw >= LIQ_KW_SENTINEL)
+		return false;
+
+	for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
+		if (liq_blk[i].being == kw)
+			return true;
+	}
+	return false;
+}
+
+bool liquid_is_block_end(enum liq_kw_e kw)
+{
+	enum liq_blk_e i;
+
+	if (kw <= LIQ_KW_SENTINEL)
+		return false;
+
+	for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
+		if (liq_blk[i].end == kw)
+			return true;
+	}
+	return false;
 }
 
 enum liq_blk_e liquid_get_blk(enum liq_kw_e kw)
@@ -119,7 +145,8 @@ bool liquid_is_valid(enum liq_blk_e parent, enum liq_kw_e kw)
 	int i;
 
 	if (parent == LIQ_BLK_NONE) {
-		return KW_HAS_ATTR(kw, LIQ_KW_F_BARE);
+		/* only a new tag_open or a bare tag can appear at level 1 */
+		return liquid_is_block_begin(kw) || KW_HAS_ATTR(kw, LIQ_KW_F_BARE);
 	}
 
 	if (!KW_HAS_ATTR(kw, LIQ_KW_F_ENCLOSED)) {

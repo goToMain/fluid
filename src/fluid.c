@@ -88,28 +88,93 @@ void fluid_render_data(fluid_t *ctx)
 
 void fluid_explode_sub_ctx(fluid_t *ctx, lexer_block_t *blk, fluid_t *sub_ctx)
 {
-	list_insert_nodes(&ctx->lex_blocks, &blk->node, &sub_ctx->lex_blocks);
-	list_remove_node(&ctx->lex_blocks, &blk->node);
-	lexer_free_block(blk);
+	list_insert_nodes(&ctx->lex_blocks, &blk->node,
+			  sub_ctx->lex_blocks.head, sub_ctx->lex_blocks.tail);
+
+	lexer_remove_block(ctx, blk);
 
 	/* empty sub_ctx blocks to prevent lexer_teardown() from free-ing them */
 	sub_ctx->lex_blocks.head = NULL;
 	sub_ctx->lex_blocks.tail = NULL;
 }
 
-int fluid_handle_includes(fluid_t *ctx)
+int fluid_remove_blocks(fluid_t *ctx, lexer_block_t *start, lexer_block_t *end)
 {
-	fluid_t *sub_ctx = NULL;
-	lexer_block_t *blk;
+	if (list_remove_nodes(&ctx->lex_blocks, &start->node, &end->node)) {
+		printf("fluid: block remove failed\n");
+		return -1;
+	}
+
+	while (start != end) {
+		lexer_remove_block(ctx, start);
+		start = CONTAINER_OF(start->node.next, lexer_block_t, node);
+	}
+	lexer_remove_block(ctx, end);
+	return 0;
+}
+
+void fluid_handle_raw_blocks(fluid_t *ctx, lexer_block_t *start, lexer_block_t *end)
+{
+	lexer_block_t *p;
+
+	p = CONTAINER_OF(start->node.next, lexer_block_t, node);
+	lexer_remove_block(ctx, start);
+	while (p != end) {
+		lexer_block_cast_to_data(p);
+		p = CONTAINER_OF(p->node.next, lexer_block_t, node);
+	}
+	lexer_remove_block(ctx, end);
+}
+
+int fluid_preprocessor(fluid_t *ctx)
+{
 	node_t *p;
+	lexer_block_t *blk;
+	fluid_t *sub_ctx;
+	lexer_block_t *comment_start = NULL;
+	lexer_block_t *raw_start = NULL;
 
 	p = ctx->lex_blocks.head;
 	while (p) {
 		blk = CONTAINER_OF(p, lexer_block_t, node);
 		p = p->next;
+
+		/* strip comments */
+		if (comment_start) {
+			if (blk->type == LEXER_BLOCK_TAG &&
+			    blk->tok.tag.keyword == LIQ_KW_ENDCOMMENT) {
+				if (fluid_remove_blocks(ctx, comment_start, blk))
+					return -1;
+				comment_start = NULL;
+			}
+			continue;
+		}
+		else if (blk->type == LEXER_BLOCK_TAG &&
+				 blk->tok.tag.keyword == LIQ_KW_COMMENT) {
+			comment_start = blk;
+			continue;
+		}
+
+		/* force mark raw blocks as data blocks */
+		if (raw_start) {
+			if (blk->type == LEXER_BLOCK_TAG &&
+			    blk->tok.tag.keyword == LIQ_KW_ENDRAW) {
+				fluid_handle_raw_blocks(ctx, raw_start, blk);
+				raw_start = NULL;
+			}
+			continue;
+		}
+		else if (blk->type == LEXER_BLOCK_TAG &&
+				 blk->tok.tag.keyword == LIQ_KW_RAW) {
+			raw_start = blk;
+			continue;
+		}
+
+		/* include files */
 		if (blk->type == LEXER_BLOCK_TAG &&
-		    liquid_get_kw(blk->tok.tag.keyword) == LIQ_KW_INCLUDE &&
-		    blk->tok.tag.tokens && blk->tok.tag.tokens[0]) {
+		    blk->tok.tag.keyword == LIQ_KW_INCLUDE &&
+		    blk->tok.tag.tokens && blk->tok.tag.tokens[0])
+		{
 			sub_ctx = fluid_load(ctx->dirname, blk->tok.tag.tokens[0]);
 			if (sub_ctx == NULL) {
 				return -1;
@@ -118,7 +183,7 @@ int fluid_handle_includes(fluid_t *ctx)
 			if (lexer_lex(sub_ctx) != 0) {
 				return -1;
 			}
-			if (fluid_handle_includes(sub_ctx)) {
+			if (fluid_preprocessor(sub_ctx)) {
 				return -1;
 			}
 			fluid_explode_sub_ctx(ctx, blk, sub_ctx);
@@ -126,6 +191,13 @@ int fluid_handle_includes(fluid_t *ctx)
 			fluid_destroy_context(sub_ctx);
 		}
 	}
+
+	/**
+	 * After preprocessing there may be consecutive data blocks
+	 * so call lexer_grabage_collect() to squash them.
+	 */
+	lexer_grabage_collect(ctx);
+
 	return 0;
 }
 
@@ -148,7 +220,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (fluid_handle_includes(ctx)) {
+	if (fluid_preprocessor(ctx)) {
 		return -1;
 	}
 
@@ -160,7 +232,7 @@ int main(int argc, char *argv[])
 	fluid_render_data(ctx);
 
 	lexer_teardown(ctx);
-	parseer_teardown(ctx);
+	parser_teardown(ctx);
 	fluid_destroy_context(ctx);
 	return 0;
 }

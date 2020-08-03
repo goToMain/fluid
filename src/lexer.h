@@ -15,6 +15,8 @@
 #include <utils/utils.h>
 #include <utils/list.h>
 
+#include "liquid.h"
+
 enum lexer_block_e {
 	LEXER_BLOCK_NONE,
 	LEXER_BLOCK_DATA,
@@ -24,7 +26,7 @@ enum lexer_block_e {
 };
 
 typedef struct {
-	char *keyword;
+	enum liq_kw_e keyword;
 	char **tokens;
 } lexer_token_tag_t;
 
@@ -48,6 +50,9 @@ typedef struct {
 void lexer_setup(fluid_t *ctx);
 int  lexer_lex(fluid_t *ctx);
 void lexer_teardown(fluid_t *ctx);
-void lexer_free_block(lexer_block_t *blk);
+void lexer_grabage_collect(fluid_t *ctx);
+void lexer_remove_block(fluid_t *ctx, lexer_block_t *blk);
+void lexer_block_cast_to_data(lexer_block_t *blk);
+int lexer_merge_blocks(fluid_t *ctx, lexer_block_t *prim, lexer_block_t *sec);
 
 #endif /* _LEXER_H_ */

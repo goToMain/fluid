@@ -1,0 +1,25 @@
+<html>
+  {% include 001_raw_head_partial.html %}
+  <body>
+    {% for col in cols %}
+      {% comment %}
+        This is a comment!
+      {% endcomment %}
+      {% if col.visible %}
+        <p>visible</p>
+        {% if col.clickable %}
+          <p>clickable</p>
+          {% break %}
+        {% endif %}
+      {% else %}
+        <p>invisible</p>
+        {% raw %}
+          {% if col.clickable %}
+            <p>clickable</p>
+            {% break %}
+          {% endif %}
+        {% endraw %}
+      {% endif %}
+    {% endfor %}}
+  <body>
+</html>

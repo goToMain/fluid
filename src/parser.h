@@ -11,6 +11,6 @@
 
 void parser_setup(fluid_t *ctx);
 int parser_parse(fluid_t *lex);
-void parseer_teardown(fluid_t *ctx);
+void parser_teardown(fluid_t *ctx);
 
 #endif /* _PARSER_H_ */

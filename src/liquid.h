@@ -53,6 +53,8 @@ enum liq_blk_e {
 
 enum liq_kw_e liquid_get_kw(const char *literal);
 enum liq_blk_e liquid_get_blk(enum liq_kw_e kw);
+bool liquid_is_block_begin(enum liq_kw_e kw);
+bool liquid_is_block_end(enum liq_kw_e kw);
 bool liquid_is_valid(enum liq_blk_e parent, enum liq_kw_e kw);
 
 #endif /* _LIQUID_H_ */
