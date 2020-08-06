@@ -8,12 +8,18 @@
 #define _FLUID_H_
 
 #include <stddef.h>
+#include <stdio.h>
 #include <utils/list.h>
 #include <utils/utils.h>
 #include <utils/strutils.h>
 #include <utils/strlib.h>
 
+#ifndef VERSION
+#define VERSION "0.0.0"
+#endif
+
 typedef struct fluid_s {
+    FILE *outfile;
     char *filename;
     char *dirname;
     char *buf;

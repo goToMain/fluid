@@ -16,6 +16,7 @@
 #include <utils/list.h>
 
 #include "liquid.h"
+#include "filter.h"
 
 enum lexer_block_e {
     LEXER_BLOCK_NONE,
@@ -27,12 +28,14 @@ enum lexer_block_e {
 
 typedef struct {
     enum liq_kw_e keyword;
+    liq_filter_t filter;
     char **tokens;
 } lexer_token_tag_t;
 
 typedef struct {
     char *identifier;
-    char **filters;
+    int num_filters;
+    liq_filter_t *filters;
 } lexer_token_obj_t;
 
 typedef union {

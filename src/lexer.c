@@ -4,8 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <utils/logger.h>
+
 #include "fluid.h"
 #include "lexer.h"
+
+LOGGER_MODULE_EXTERN(fluid, lexer);
 
 enum lexer_state_e {
     LEXER_BLOCK_STATE_DATA,
@@ -15,13 +19,13 @@ enum lexer_state_e {
 };
 
 /* Transform "{% TAG %}" or "{{ OBJ }}" as "TAG" or "OBJ" */
-static void lexer_clean_liquid_markup(string_t *s)
+static int lexer_clean_liquid_markup(char *buf, size_t len)
 {
-    s->buf[0] = ' ';
-    s->buf[1] = ' ';
-    s->buf[s->len - 2] = ' ';
-    s->buf[s->len - 1] = ' ';
-    strip(s->buf);
+    buf[0] = ' ';
+    buf[1] = ' ';
+    buf[len - 2] = ' ';
+    buf[len - 1] = ' ';
+    return strip(buf);
 }
 
 static void lexer_block_free(lexer_block_t *blk)
@@ -158,47 +162,136 @@ int lexer_lex_blocks(fluid_t *ctx)
     return 0;
 }
 
+int lexer_filter_parse(liq_filter_t *f, char *str)
+{
+    char *tok, args;
+    int len, i;
+
+    if((tok = strsep(&str, ":")) == NULL)
+        return -1;
+
+    lstrip_soft(tok); rstrip(tok);
+    if ((f->id = get_filter_id(tok)) == LIQ_FILTER_NONE)
+        return -1;
+
+    args = liq_filter_arg_count(f->id);
+
+    if (strisempty(str)) {
+        if (args != 0)
+            return -1;
+        return 0;
+    }
+
+    for (i = 0; i < args; i++) {
+        if((tok = strsep(&str, ",")) == NULL)
+            return -1;
+
+        lstrip_soft(tok); len = rstrip(tok);
+        if (len > LIQ_FILTER_ARG_MAXLEN)
+            return -1;
+
+        strncpy(f->args[i], tok, LIQ_FILTER_ARG_MAXLEN);
+    }
+
+    if (!strisempty(str))
+        return -1;
+
+    return 0;
+}
+
 int lexer_tokenize_tag(lexer_block_t *blk)
 {
-    string_t content;
-    char *tok, *rest;
+    int len;
+    char *tok, *p, *f, buf[256];
 
-    string_clone(&content, &blk->content);
-    lexer_clean_liquid_markup(&content);
-
-    tok = strtok_r(content.buf, " ", &rest);
-    if (tok == NULL) {
-        printf("lexer: failed to extract keyword\n");
-        string_destroy(&content);
+    if (blk->content.max_len >= 256) {
+        LOG_ERR("object too large");
         return -1;
     }
+
+    p = buf;
+    strncpy(buf, blk->content.buf, blk->content.len);
+    buf[blk->content.len] = '\0';
+    if (lexer_clean_liquid_markup(buf, blk->content.len) == 0)
+        return -1;
+
+    if ((tok = strsep(&p, " ")) == NULL) {
+        LOG_ERR("failed to extract keyword");
+        return -1;
+    }
+    lstrip_soft(tok); rstrip(tok);
     blk->tok.tag.keyword = liquid_get_kw(tok);
-    split_string(rest, " ", &blk->tok.tag.tokens);
-    string_destroy(&content);
+
+    if (p && (f = strchr(p, '|')) != NULL) {
+        f[0] = '\0';
+        lstrip_soft(f); len = rstrip(f);
+        if (!len || lexer_filter_parse(&blk->tok.tag.filter, f)) {
+            LOG_ERR("tag filter syntax error");
+            return -1;
+        }
+    }
+
+    if (p && split_string(p, " ", &blk->tok.tag.tokens)) {
+        LOG_ERR("tag parse errors");
+        return -1;
+    }
+
     return 0;
 }
 
 int lexer_tokenize_object(lexer_block_t *blk)
 {
-    string_t content;
-    char *filter, *tok, *rest;
+    int i = 0;
+    int num_filters;
+    liq_filter_t *filters, *filter;
+    char *tok, *p, buf[256];
 
-    string_clone(&content, &blk->content);
-    lexer_clean_liquid_markup(&content);
+    if (blk->content.max_len >= 256) {
+        LOG_ERR("object too large");
+        return -1;
+    }
 
-    tok = strtok_r(content.buf, " ", &rest);
-    if (tok == NULL) {
-        printf("lexer: failed to extract identifier\n");
-        string_destroy(&content);
+    p = buf;
+    strncpy(buf, blk->content.buf, blk->content.len);
+    buf[blk->content.len] = '\0';
+    if (lexer_clean_liquid_markup(buf, blk->content.len) == 0)
+        return -1;
+
+    if ((tok = strsep(&p, " ")) == NULL) {
+        LOG_ERR("failed to extract identifier");
         return -1;
     }
     blk->tok.obj.identifier = safe_strdup(tok);
-    blk->tok.obj.filters = NULL;
-    filter = strchr(rest, '|');
-    if (filter != NULL) {
-        split_string(rest + 1, "| ", &blk->tok.obj.filters);
+
+    if (strisempty(p))
+        return 0;
+
+    if (*p != '|') {
+        LOG_ERR("object found '%s' in place of filters", p);
+        return -1;
     }
-    string_destroy(&content);
+    p += 1; /* skip the leading '|' */
+    num_filters = 1 + strcntchr(p, '|');
+    filters = filter = safe_calloc(num_filters, sizeof(liq_filter_t));
+    while (i < num_filters && (tok = strsep(&p, "|")) != NULL) {
+        lstrip_soft(tok);
+        if (strisempty(tok))
+            break;
+        if (lexer_filter_parse(filter, tok)) {
+            LOG_ERR("object filter syntax error");
+            break;
+        }
+        filter += 1;
+        i += 1;
+    }
+
+    if (i != num_filters) {
+        safe_free(filters);
+        return -1;
+    }
+
+    blk->tok.obj.num_filters = num_filters;
+    blk->tok.obj.filters = filters;
     return 0;
 }
 
@@ -211,13 +304,13 @@ int lexer_lex_tokens(fluid_t *ctx)
         blk = CONTAINER_OF(p, lexer_block_t, node);
         if (blk->type == LEXER_BLOCK_TAG) {
             if (lexer_tokenize_tag(blk) != 0) {
-                printf("lexer: tokenize tag failed\n");
+                LOG_ERR("tokenize tag failed");
                 return -1;
             }
         }
         if (blk->type == LEXER_BLOCK_OBJECT) {
             if (lexer_tokenize_object(blk) != 0) {
-                printf("lexer: tokenize object failed\n");
+                LOG_ERR("tokenize object failed");
                 return -1;
             }
         }
@@ -240,7 +333,7 @@ void lexer_grabage_collect(fluid_t *ctx)
         cur = CONTAINER_OF(p, lexer_block_t, node);
         if (prev->type == LEXER_BLOCK_DATA && cur->type == LEXER_BLOCK_DATA) {
             if (lexer_merge_blocks(ctx, prev, cur)) {
-                printf("lexer_gc: failed to merge blocks!\n");
+                LOG_INF("gc: failed to merge blocks. Skipped!");
             }
         }
         p = p->next;
@@ -256,16 +349,12 @@ void lexer_setup(fluid_t *ctx)
 int lexer_lex(fluid_t *ctx)
 {
     /* State1: Identify data/tag/object blocks */
-    if (lexer_lex_blocks(ctx) != 0) {
-        printf("lexer: failed to identify blocks\n");
+    if (lexer_lex_blocks(ctx) != 0)
         return -1;
-    }
 
     /* State2: Lex tag and object blocks for more information */
-    if (lexer_lex_tokens(ctx) != 0) {
-        printf("lexer: failed to identify blocks\n");
+    if (lexer_lex_tokens(ctx) != 0)
         return -1;
-    }
 
     return 0;
 }
