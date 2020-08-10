@@ -62,9 +62,9 @@ liq_filter_handler_t liq_filters[LIQ_FILTER_SENTINEL] = {
     [LIQ_FILTER_RSTRIP]      = { "rstrip",     fluid_filter_rstrip,     LIQ_FF_NONE },
 };
 
-enum liq_filter_e get_filter_id(const char *identifer)
+enum liq_filter get_filter_id(const char *identifer)
 {
-    enum liq_filter_e i;
+    enum liq_filter i;
 
     for (i = LIQ_FILTER_NONE+1; i < LIQ_FILTER_SENTINEL; i++) {
         if(strcmp(identifer, liq_filters[i].identifier) == 0)
@@ -73,7 +73,7 @@ enum liq_filter_e get_filter_id(const char *identifer)
     return i;
 }
 
-int liq_filter_arg_count(enum liq_filter_e id)
+int liq_filter_arg_count(enum liq_filter id)
 {
     uint32_t mask;
 

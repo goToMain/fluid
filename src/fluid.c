@@ -234,7 +234,7 @@ void exit_help(int return_code)
 
 void exit_error(const char *msg)
 {
-    LOG_ERR("%s", msg);
+    fprintf(stderr, "fluid: error: %s\n", msg);
     exit(-1);
 }
 
@@ -289,7 +289,7 @@ void process_cli_opts(int argc, char *argv[])
     /* handle positional arguments */
 
     if (argc != 1)
-        exit_error("template file is a mandatory argument. See --help");
+        exit_error("no input files given. See --help");
 
     fluid_opts.infile = safe_strdup(argv[0]);
 }

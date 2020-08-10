@@ -10,7 +10,7 @@
 #define LIQ_FILTER_ARG_MAXLEN   32
 #define LIQ_FILTER_ARG_COUNT    2
 
-enum liq_filter_e {
+enum liq_filter {
     LIQ_FILTER_NONE,
     LIQ_FILTER_STRIP,
     LIQ_FILTER_LSTRIP,
@@ -19,12 +19,12 @@ enum liq_filter_e {
 };
 
 typedef struct {
-    enum liq_filter_e id;
+    enum liq_filter id;
     char args[LIQ_FILTER_ARG_COUNT][LIQ_FILTER_ARG_MAXLEN + 1];
 } liq_filter_t;
 
-enum liq_filter_e get_filter_id(const char *identifer);
+enum liq_filter get_filter_id(const char *identifer);
 int filter_execute(liq_filter_t *f, char *in);
-int liq_filter_arg_count(enum liq_filter_e id);
+int liq_filter_arg_count(enum liq_filter id);
 
 #endif  /* _FILTER_H_ */

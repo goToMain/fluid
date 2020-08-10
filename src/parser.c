@@ -8,30 +8,34 @@
 #include <stdbool.h>
 
 #include "parser.h"
-#include "lexer.h"
-#include "liquid.h"
 
-#define MAX_BLOCK_NESTING_DEPTH        64
+pt_node_t *new_pt_node(pt_node_t *parent, enum pt_node_type type)
+{
+    pt_node_t *n;
+
+    n = safe_calloc(1, sizeof(pt_node_t));
+    n->type = type;
+    n->parent = parent;
+    return n;
+}
+
+int build_parse_tree(fluid_t *ctx)
+{
+    ARG_UNUSED(ctx);
+
+    return 0;
+}
 
 void parser_setup(fluid_t *ctx)
 {
     ARG_UNUSED(ctx);
 }
 
-/* last - Liquid Abstract Syntax Tree */
-struct last_s {
-    struct last_node_s *root;
-};
-
-struct last_node_s {
-    list_t *block;
-    int num_children;
-    struct last_node_s **children;
-};
-
 int parser_parse(fluid_t *ctx)
 {
-    ARG_UNUSED(ctx);
+    if (build_parse_tree(ctx))
+        return -1;
+
     return 0;
 }
 

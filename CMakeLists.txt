@@ -34,3 +34,8 @@ add_subdirectory(src)
 add_custom_target(uninstall
     COMMAND xargs rm < ${CMAKE_BINARY_DIR}/install_manifest.txt
 )
+
+## check target
+add_custom_target(check
+	COMMAND make check_utils # test utils too
+)

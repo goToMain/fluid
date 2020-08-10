@@ -11,7 +11,7 @@
 
 LOGGER_MODULE_EXTERN(fluid, lexer);
 
-enum lexer_state_e {
+enum lexer_state {
     LEXER_BLOCK_STATE_DATA,
     LEXER_BLOCK_STATE_OBJECT,
     LEXER_BLOCK_STATE_TAG,
@@ -75,7 +75,7 @@ void lexer_block_cast_to_data(lexer_block_t *blk)
 }
 
 static int
-lexer_block_add(fluid_t *ctx, enum lexer_block_e type, size_t pos, size_t len)
+lexer_block_add(fluid_t *ctx, enum lexer_block type, size_t pos, size_t len)
 {
     lexer_block_t *blk;
 
@@ -108,7 +108,7 @@ int lexer_lex_blocks(fluid_t *ctx)
 {
     char c1, c2;
     size_t current = 0, start = 0;
-    enum lexer_state_e state = LEXER_BLOCK_STATE_DATA;
+    enum lexer_state state = LEXER_BLOCK_STATE_DATA;
 
     while (current < (ctx->buf_size - 1)) {
         c1 = ctx->buf[current];

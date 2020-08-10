@@ -18,7 +18,7 @@
 #include "liquid.h"
 #include "filter.h"
 
-enum lexer_block_e {
+enum lexer_block {
     LEXER_BLOCK_NONE,
     LEXER_BLOCK_DATA,
     LEXER_BLOCK_OBJECT,
@@ -27,7 +27,7 @@ enum lexer_block_e {
 };
 
 typedef struct {
-    enum liq_kw_e keyword;
+    enum liq_kw keyword;
     liq_filter_t filter;
     char **tokens;
 } lexer_token_tag_t;
@@ -45,7 +45,7 @@ typedef union {
 
 typedef struct {
     node_t node;
-    enum lexer_block_e type;
+    enum lexer_block type;
     string_t content;
     lexer_token_t tok;
 } lexer_block_t;

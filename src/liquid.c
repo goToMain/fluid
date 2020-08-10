@@ -48,9 +48,9 @@ static liq_kw_t liq_kw[LIQ_KW_SENTINEL] = {
 };
 
 typedef struct {
-    enum liq_kw_e being;
-    enum liq_kw_e end;
-    enum liq_kw_e sub_kw[LIQ_BLK_SUB_KW_COUNT]; /* increase as needed */
+    enum liq_kw being;
+    enum liq_kw end;
+    enum liq_kw sub_kw[LIQ_BLK_SUB_KW_COUNT]; /* increase as needed */
 } liq_blk_t;
 
 static liq_blk_t liq_blk[LIQ_BLK_SENTINEL] = {
@@ -63,10 +63,10 @@ static liq_blk_t liq_blk[LIQ_BLK_SENTINEL] = {
     [LIQ_BLK_UNLESS]   = { LIQ_KW_UNLESS,  LIQ_KW_ENDUNLESS,  {} },
 };
 
-enum liq_kw_e liquid_get_kw(const char *literal)
+enum liq_kw liquid_get_kw(const char *literal)
 {
-    enum liq_kw_e i;
-    enum liq_blk_e j;
+    enum liq_kw i;
+    enum liq_blk j;
     int len, is_end = 0;
 
     if (strncmp(literal, "end", 3) == 0) {
@@ -96,9 +96,9 @@ enum liq_kw_e liquid_get_kw(const char *literal)
     return LIQ_KW_NONE;
 }
 
-bool liquid_is_block_begin(enum liq_kw_e kw)
+bool liquid_is_block_begin(enum liq_kw kw)
 {
-    enum liq_blk_e i;
+    enum liq_blk i;
 
     if (kw >= LIQ_KW_SENTINEL)
         return false;
@@ -110,9 +110,9 @@ bool liquid_is_block_begin(enum liq_kw_e kw)
     return false;
 }
 
-bool liquid_is_block_end(enum liq_kw_e kw)
+bool liquid_is_block_end(enum liq_kw kw)
 {
-    enum liq_blk_e i;
+    enum liq_blk i;
 
     if (kw <= LIQ_KW_SENTINEL)
         return false;
@@ -124,9 +124,9 @@ bool liquid_is_block_end(enum liq_kw_e kw)
     return false;
 }
 
-enum liq_blk_e liquid_get_blk(enum liq_kw_e kw)
+enum liq_blk liquid_get_blk(enum liq_kw kw)
 {
-    enum liq_blk_e i;
+    enum liq_blk i;
 
     for (i = 0; i < LIQ_BLK_SENTINEL; i++) {
         if (kw > LIQ_KW_SENTINEL && liq_blk[i].end == kw) {
@@ -140,7 +140,7 @@ enum liq_blk_e liquid_get_blk(enum liq_kw_e kw)
     return LIQ_BLK_NONE;
 }
 
-bool liquid_is_valid(enum liq_blk_e parent, enum liq_kw_e kw)
+bool liquid_is_valid(enum liq_blk parent, enum liq_kw kw)
 {
     int i;
 
