@@ -25,7 +25,7 @@ typedef struct fluid_s {
     char *buf;
     size_t buf_size;
     list_t lex_blocks;    /* list of nodes of type lexer_block_t */
-    list_t parse_blocks;  /* list of nodes of types pt_nodes_t */
+    void *parser_data;
 } fluid_t;
 
 #endif /* _FLUID_H_ */

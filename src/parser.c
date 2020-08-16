@@ -19,21 +19,46 @@ pt_node_t *new_pt_node(pt_node_t *parent, enum pt_node_type type)
     return n;
 }
 
-int build_parse_tree(fluid_t *ctx)
-{
-    ARG_UNUSED(ctx);
+typedef struct {
+    pt_node_t *root;
+} parser_t;
 
+int build_parse_tree(parser_t *ctx, list_t *lex_blocks)
+{
+    lexer_block_t *blk;
+
+    LIST_FOREACH(lex_blocks, p) {
+        blk = CONTAINER_OF(p, lexer_block_t, node);
+        switch (blk->type) {
+        case LEXER_BLOCK_DATA:
+
+            break;
+        case LEXER_BLOCK_OBJECT:
+            break;
+        case LEXER_BLOCK_TAG:
+            break;
+        default:
+            break;
+        }
+    }
     return 0;
 }
 
 void parser_setup(fluid_t *ctx)
 {
-    ARG_UNUSED(ctx);
+    parser_t *p;
+
+    p = safe_malloc(sizeof(parser_t));
+    p->root = NULL;
+
+    ctx->parser_data = p;
 }
 
 int parser_parse(fluid_t *ctx)
 {
-    if (build_parse_tree(ctx))
+    parser_t *p = ctx->parser_data;
+
+    if (build_parse_tree(p, &ctx->lex_blocks))
         return -1;
 
     return 0;
@@ -41,5 +66,7 @@ int parser_parse(fluid_t *ctx)
 
 void parser_teardown(fluid_t *ctx)
 {
-    ARG_UNUSED(ctx);
+    parser_t *p = ctx->parser_data;
+
+    safe_free(p);
 }

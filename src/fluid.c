@@ -45,7 +45,6 @@ fluid_t *fluid_load(const char *dirname, const char *filename)
         LOG_ERR("failed to extract dirname/basename from '%s'", path);
         goto error;
     }
-
     safe_free(path);
     fclose(fd);
     return ctx;
@@ -71,12 +70,9 @@ void fluid_destroy_context(fluid_t *ctx)
 void fluid_render_data(fluid_t *ctx)
 {
     lexer_block_t *blk;
-    node_t *p;
 
-    p = ctx->lex_blocks.head;
-    while (p) {
+    LIST_FOREACH(&ctx->lex_blocks, p) {
         blk = CONTAINER_OF(p, lexer_block_t, node);
-        p = p->next;
         if (blk->type == LEXER_BLOCK_DATA) {
             fprintf(ctx->outfile, "%s", blk->content.buf);
         }
@@ -97,14 +93,17 @@ void fluid_explode_sub_ctx(fluid_t *ctx, lexer_block_t *blk, fluid_t *sub_ctx)
 
 int fluid_remove_blocks(fluid_t *ctx, lexer_block_t *start, lexer_block_t *end)
 {
+    node_t *next;
+
     if (list_remove_nodes(&ctx->lex_blocks, &start->node, &end->node)) {
         LOG_ERR("block remove failed");
         return -1;
     }
 
     while (start != end) {
+        next = start->node.next;
         lexer_remove_block(ctx, start);
-        start = CONTAINER_OF(start->node.next, lexer_block_t, node);
+        start = CONTAINER_OF(next, lexer_block_t, node);
     }
     lexer_remove_block(ctx, end);
     return 0;

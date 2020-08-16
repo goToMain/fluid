@@ -298,9 +298,8 @@ int lexer_tokenize_object(lexer_block_t *blk)
 int lexer_lex_tokens(fluid_t *ctx)
 {
     lexer_block_t *blk;
-    node_t *p = ctx->lex_blocks.head;
 
-    while (p) {
+    LIST_FOREACH(&ctx->lex_blocks, p) {
         blk = CONTAINER_OF(p, lexer_block_t, node);
         if (blk->type == LEXER_BLOCK_TAG) {
             if (lexer_tokenize_tag(blk) != 0) {
@@ -314,29 +313,26 @@ int lexer_lex_tokens(fluid_t *ctx)
                 return -1;
             }
         }
-        p = p->next;
     }
     return 0;
 }
 
 void lexer_grabage_collect(fluid_t *ctx)
 {
-    node_t *p;
-    lexer_block_t *cur, *prev;
+    lexer_block_t *cur, *prev = NULL;
 
     if (ctx->lex_blocks.head == NULL)
         return;
 
-    prev =  CONTAINER_OF(ctx->lex_blocks.head, lexer_block_t, node);
-    p = ctx->lex_blocks.head->next;
-    while (p) {
+    LIST_FOREACH(&ctx->lex_blocks, p) {
         cur = CONTAINER_OF(p, lexer_block_t, node);
-        if (prev->type == LEXER_BLOCK_DATA && cur->type == LEXER_BLOCK_DATA) {
+        if (prev && prev->type == LEXER_BLOCK_DATA &&
+            cur->type == LEXER_BLOCK_DATA)
+        {
             if (lexer_merge_blocks(ctx, prev, cur)) {
                 LOG_INF("gc: failed to merge blocks. Skipped!");
             }
         }
-        p = p->next;
         prev = cur;
     }
 }
