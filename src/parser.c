@@ -27,6 +27,8 @@ int build_parse_tree(parser_t *ctx, list_t *lex_blocks)
 {
     lexer_block_t *blk;
 
+    ARG_UNUSED(ctx);
+
     LIST_FOREACH(lex_blocks, p) {
         blk = CONTAINER_OF(p, lexer_block_t, node);
         switch (blk->type) {

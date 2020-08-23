@@ -23,11 +23,17 @@ include(BuildType)
 add_c_compiler_flag(-Wall)
 add_c_compiler_flag(-Wextra)
 
+## Exnternal dependencies
+find_package(LibYAML REQUIRED)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_subdirectory(utils)
+set(LIBUTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/utils/include)
+set(LIBUTILS_LIBRARIES utils)
+
 add_subdirectory(src)
 
 ## uninstall target

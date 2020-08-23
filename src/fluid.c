@@ -13,6 +13,8 @@
 #include "lexer.h"
 #include "parser.h"
 #include "liquid.h"
+#include "ferrors.h"
+#include "config.h"
 
 LOGGER_MODULE_DEFINE(fluid, LOG_ERR);
 
@@ -204,6 +206,7 @@ int fluid_preprocessor(fluid_t *ctx)
 struct fluid_opts_s {
     char *infile;
     char *outfile;
+    char *config_file;
     int verbosity;
 } fluid_opts;
 
@@ -252,11 +255,12 @@ void process_cli_opts(int argc, char *argv[])
         { "version",    no_argument,       NULL,                   'V' },
         { "outfile",    required_argument, NULL,                   'o' },
         { "verbose",    optional_argument, NULL,                   'v' },
+        { "config",     required_argument, NULL,                   'c' },
         { NULL,         0,                 NULL,                    0  }
     };
     const char *opt_str =
         /* no_argument       */ "hV"
-        /* required_argument */ "o:"
+        /* required_argument */ "o:c:"
         /* optional_argument */ "v::"
     ;
     while ((c = getopt_long(argc, argv, opt_str, opts, &opt_ndx)) >= 0) {
@@ -265,6 +269,11 @@ void process_cli_opts(int argc, char *argv[])
             if (fluid_opts.outfile)
                 exit_error("Cannot pass multiple output files");
             fluid_opts.outfile = safe_strdup(optarg);
+            break;
+        case 'c':
+            if (fluid_opts.config_file)
+                exit_error("Cannot pass multiple config files");
+            fluid_opts.config_file = safe_strdup(optarg);
             break;
         case 'v':
             fluid_opts.verbosity += 1;
@@ -295,9 +304,13 @@ void process_cli_opts(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
+    ferror_t e;
     fluid_t *ctx;
 
     process_cli_opts(argc, argv);
+
+    e = config_parse_yaml(fluid_opts.config_file);
+    fexcept_proagate(e);
 
     ctx = fluid_load(NULL, fluid_opts.infile);
     if (ctx == NULL) {
