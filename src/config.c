@@ -135,10 +135,10 @@ ferror_t config_parse_yaml_buf(const char *input, size_t length)
     while (reader.state != YRS_STOP || reader.state != YRS_ERROR) {
 
         if (!yaml_parser_parse(&parser, &event))
-            fexcept_goto_error(FERROR_CONFIG_PARSER);
+            fexcept_goto(FERROR_CONFIG_PARSER, error);
 
         e = config_process_event(&reader, &event);
-        fexcept_proagate_goto_error(e);
+        fexcept_proagate_goto(e, error);
 
         yaml_event_delete(&event);
     }
@@ -161,10 +161,10 @@ ferror_t config_parse_yaml(const char *file)
         fexcept(FERROR_FILE_NOT_FOUND);
 
     if (file_read_all(fd, &buf, &size))
-        fexcept_goto_error(FERROR_FILE_NOT_FOUND);
+        fexcept_goto(FERROR_FILE_NOT_FOUND, error);
 
     e = config_parse_yaml_buf(buf, size);
-    fexcept_proagate_goto_error(e);
+    fexcept_proagate_goto(e, error);
 
 error:
     safe_free(buf);
