@@ -37,6 +37,7 @@ const char *ferror_message(ferror_t e)
     /* Config errors */
     case FERROR_CONFIG_PARSER:         return "yaml parser error";
     case FERROR_CONFIG_EVENT:          return "invalid yaml event";
+    case FERROR_CONFIG_NESTING:        return "invalid object nesting request";
 
     /* lables that dont have a case */
     case FERROR_OK:

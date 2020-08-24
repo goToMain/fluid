@@ -87,8 +87,9 @@ struct fluid_object_s {
 
 ferror_t fluid_object_new(const char *identifier, fluid_object_t **object);
 ferror_t fluid_object_add_value(fluid_object_t *obj, const char *value);
-void fluid_object_nest(fluid_object_t *parent, fluid_object_t *child);
-void fluid_object_cast_list(fluid_object_t *obj);
+ferror_t fluid_object_nest(fluid_object_t *parent, fluid_object_t *child);
+ferror_t fluid_object_cast_containier(fluid_object_t *obj);
+ferror_t fluid_object_cast_list(fluid_object_t *obj);
 ferror_t fluid_object_list_append(fluid_object_t *list_obj, fluid_object_t *item);
 ferror_t fluid_object_delete(fluid_object_t *obj);
 

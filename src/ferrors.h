@@ -35,6 +35,7 @@ typedef enum ferror_e {
     FERROR_CE_START,
         FERROR_CONFIG_PARSER,
         FERROR_CONFIG_EVENT,
+        FERROR_CONFIG_NESTING,
     FERROR_CE_END,
 
 } ferror_t;
@@ -42,30 +43,43 @@ typedef enum ferror_e {
 const char *ferror_type(ferror_t e);
 const char *ferror_message(ferror_t e);
 
+#define fexcept_print(e)                                                 \
+    fprintf(stderr, "EXCEPTION: %s at %s - %s\n",                        \
+            ferror_type(e), __FUNCTION__, ferror_message(e));            \
+
+#ifndef NDEBUG
+#define fexcept_proagate_print(e)                                        \
+    fprintf(stderr, "\t while at %s\n", __FUNCTION__);
+#else
+#define fexcept_proagate_print(e)
+#endif
+
 #define fexcept(e)                                                       \
     do {                                                                 \
-        fprintf(stderr, "EXCEPTION: %s at %s - %s",                      \
-                ferror_type(e), __FUNCTION__, ferror_message(e));        \
+        fexcept_print(e)                                                 \
         return e;                                                        \
     } while(0)
 
 #define fexcept_goto(e, l)                                               \
     do {                                                                 \
-        fprintf(stderr, "EXCEPTION: %s at %s - %s",                      \
-                ferror_type(e), __FUNCTION__, ferror_message(e));        \
+        fexcept_print(e)                                                 \
         goto l;                                                          \
     } while(0)
 
 #define fexcept_proagate(e)                                              \
     do {                                                                 \
-        if (e != FERROR_OK)                                              \
+        if (e != FERROR_OK) {                                            \
+            fexcept_proagate_print(e);                                   \
             return e;                                                    \
+        }                                                                \
     } while (0)
 
 #define fexcept_proagate_goto(e, l)                                      \
     do {                                                                 \
-        if (e != FERROR_OK)                                              \
+        if (e != FERROR_OK) {                                            \
+            fexcept_proagate_print(e);                                   \
             goto l;                                                      \
+        }                                                                \
     } while (0)
 
 #endif  /* _FERROR_H_ */

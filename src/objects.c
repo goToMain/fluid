@@ -106,6 +106,17 @@ ferror_t fluid_object_new(const char *identifier, fluid_object_t **object)
     return FERROR_OK;
 }
 
+ferror_t fluid_object_cast_containier(fluid_object_t *obj)
+{
+    if (obj->type != FLUID_TYPE_UNDEF)
+        fexcept(FERROR_OBJECT_TYPE);
+
+    obj->type = FLUID_TYPE_OBJECT;
+    hash_map_init(&obj->members);
+
+    return FERROR_OK;
+}
+
 ferror_t fluid_object_add_value(fluid_object_t *obj, const char *value)
 {
     ferror_t e;
@@ -117,29 +128,35 @@ ferror_t fluid_object_add_value(fluid_object_t *obj, const char *value)
     return FERROR_OK;
 }
 
-void fluid_object_nest(fluid_object_t *parent, fluid_object_t *child)
+ferror_t fluid_object_nest(fluid_object_t *parent, fluid_object_t *child)
 {
+    if (parent == NULL || child == NULL)
+        fexcept(FERROR_INVALID_PARAM);
+
     switch (parent->type) {
-    case FLUID_TYPE_UNDEF:
-        parent->type = FLUID_TYPE_OBJECT;
-        /* FALLTHRU */
     case FLUID_TYPE_OBJECT:
         hash_map_insert(&parent->members, child->identifer, child);
         break;
     case FLUID_TYPE_LIST:
         list_append(&parent->list.items, &child->node);
         break;
-    default:
-        break;
+    default: fexcept(FERROR_OBJECT_TYPE);
     }
+
+    return FERROR_OK;
 }
 
 /* --- lists --- */
 
-void fluid_object_cast_list(fluid_object_t *obj)
+ferror_t fluid_object_cast_list(fluid_object_t *obj)
 {
+    if (obj->type != FLUID_TYPE_UNDEF)
+        fexcept(FERROR_OBJECT_TYPE);
+
     obj->type = FLUID_TYPE_LIST;
     list_init(&obj->list.items);
+
+    return FERROR_OK;
 }
 
 ferror_t fluid_object_list_append(fluid_object_t *list_obj, fluid_object_t *item)

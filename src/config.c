@@ -26,6 +26,7 @@
 
 enum yaml_reader_state_e {
     YRS_START,
+    YRS_OBJ_NEW,
     YRS_OBJ_KEY,
     YRS_OBJ_VAL,
     YRS_STOP,
@@ -45,45 +46,67 @@ typedef struct {
     fluid_object_t *previous;
     fluid_object_t *parent;
     fluid_object_t *root;
-} yaml_reader_t;
+} config_reader_t;
 
-#define SET_CURRENT(r, c)  do {        \
-        r->previous = r->current;      \
-        r->current = c;                \
+#define debug_ptr(r) fprintf(stderr, "cur: %p par: %p\n", r->current, r->parent)
+
+#define object_descend(r)  do {                   \
+debug_ptr(r);\
+        r->level++;                               \
+        r->parent = r->current;                   \
+        r->current = NULL;                        \
     } while (0);
 
-#define SET_CURRENT_TO_PARENT(r) do {        \
-        if (r->current->parent != NULL)      \
-            r->current = r->current->parent; \
+#define object_ascend(r) do {                                               \
+        debug_ptr(r);\
+        if (r->level <= 0)                                                  \
+            fexcept(FERROR_CONFIG_NESTING);                                 \
+        r->current = r->current->parent;                                    \
+        r->parent = r->current ? r->current->parent : NULL;                 \
+        r->level--;                                                         \
     } while (0);
 
-static ferror_t config_process_event(yaml_reader_t *r, yaml_event_t *event)
+static ferror_t
+config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
 {
     ferror_t e;
 
     switch (r->state) {
     case YRS_START:
         switch(event->type) {
+        case YAML_STREAM_START_EVENT: break;
+        case YAML_DOCUMENT_START_EVENT:
+            r->state = YRS_OBJ_NEW;
+            break;
+        default: fexcept(FERROR_CONFIG_EVENT);
+        }
+        break;
+    case YRS_OBJ_NEW:
+        switch(event->type) {
         case YAML_MAPPING_START_EVENT:
-            r->parent = r->current;
+            object_descend(r);
             e = fluid_object_new(NULL, &r->current);
             fexcept_proagate(e);
+            fluid_object_cast_containier(r->current);
             r->state = YRS_OBJ_KEY;
             break;
-        default:
+        case YAML_DOCUMENT_END_EVENT:
+            r->state = YRS_STOP;
             break;
+        default: fexcept(FERROR_CONFIG_EVENT);
         }
         break;
     case YRS_OBJ_KEY:
         switch(event->type) {
         case YAML_SCALAR_EVENT:
+            object_descend(r);
             e = fluid_object_new((char *)event->data.scalar.value, &r->current);
             fexcept_proagate(e);
             r->state = YRS_OBJ_VAL;
             break;
         case YAML_MAPPING_END_EVENT:
-        case YAML_SEQUENCE_END_EVENT:
-            SET_CURRENT_TO_PARENT(r);
+            object_ascend(r);
+            r->state = YRS_OBJ_NEW;
             break;
         default:
             break;
@@ -94,12 +117,10 @@ static ferror_t config_process_event(yaml_reader_t *r, yaml_event_t *event)
         case YAML_SCALAR_EVENT:
             e = fluid_object_add_value(r->current, (char *)event->data.scalar.value);
             fexcept_proagate(e);
-            fluid_object_nest(r->parent, r->current);
+            e = fluid_object_nest(r->parent, r->current);
+            fexcept_proagate(e);
+            object_ascend(r);
             r->state = YRS_OBJ_KEY;
-            break;
-        case YAML_SEQUENCE_START_EVENT: /* value list start */
-            fluid_object_cast_list(r->current);
-            r->state = YRS_START;
             break;
         default:
             break;
@@ -117,27 +138,24 @@ static ferror_t config_process_event(yaml_reader_t *r, yaml_event_t *event)
 ferror_t config_parse_yaml_buf(const char *input, size_t length)
 {
     ferror_t e = FERROR_OK;
-    yaml_reader_t reader;
     yaml_event_t event;
     yaml_parser_t parser;
+    config_reader_t r;
 
-    reader.state = YRS_START;
-    reader.level = 0;
-    e = fluid_object_new("config", &reader.root);
+    memset(&r, 0, sizeof(config_reader_t));
+    e = fluid_object_new("config", &r.root);
     fexcept_proagate(e);
-    reader.parent = reader.root;
-    reader.previous = NULL;
-    reader.current = NULL;
+    r.current = r.root;
 
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_string(&parser, (unsigned char *)input, length);
 
-    while (reader.state != YRS_STOP || reader.state != YRS_ERROR) {
+    while (r.state != YRS_STOP || r.state != YRS_ERROR) {
 
         if (!yaml_parser_parse(&parser, &event))
             fexcept_goto(FERROR_CONFIG_PARSER, error);
 
-        e = config_process_event(&reader, &event);
+        e = config_process_yaml_event(&r, &event);
         fexcept_proagate_goto(e, error);
 
         yaml_event_delete(&event);
@@ -155,8 +173,6 @@ ferror_t config_parse_yaml(const char *file)
     size_t size = 0;
     FILE *fd;
 
-    return FERROR_OK;
-
     if ((fd = fopen(file, "r")) == NULL)
         fexcept(FERROR_FILE_NOT_FOUND);
 
@@ -169,6 +185,5 @@ ferror_t config_parse_yaml(const char *file)
 error:
     safe_free(buf);
     fclose(fd);
-    exit(0);
     return e;
 }
