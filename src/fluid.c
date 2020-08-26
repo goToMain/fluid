@@ -309,8 +309,10 @@ int main(int argc, char *argv[])
 
     process_cli_opts(argc, argv);
 
-    e = config_parse_yaml(fluid_opts.config_file);
-    fexcept_proagate(e);
+    if (fluid_opts.config_file) {
+        e = config_parse_yaml(fluid_opts.config_file);
+        fexcept_proagate(e);
+    }
 
     ctx = fluid_load(NULL, fluid_opts.infile);
     if (ctx == NULL) {
