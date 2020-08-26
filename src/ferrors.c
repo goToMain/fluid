@@ -11,7 +11,7 @@ const char *ferror_type(ferror_t e)
     if (e > FERROR_GE_START && e < FERROR_GE_END)
         return "GenericError";
 
-    if (e > FERROR_OE_START && e < FERROR_GE_END)
+    if (e > FERROR_OE_START && e < FERROR_OE_END)
         return "ObjectError";
 
     if (e > FERROR_CE_START && e < FERROR_CE_END)

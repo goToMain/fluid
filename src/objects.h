@@ -25,7 +25,6 @@ enum fluid_ptype_e {
     FLUID_PTYPE_NUMBER,
     FLUID_PTYPE_STRING,
     FLUID_PTYPE_BOOLEAN,
-    FLUID_PTYPE_SENTINEL
 };
 
 typedef struct  {
@@ -58,11 +57,9 @@ typedef struct {
 #define FLUID_OBJECT_IDENTIFIER_MAXLEN 32
 
 enum fluid_type_e {
-    FLUID_TYPE_UNDEF,
     FLUID_TYPE_PRIMITIVE,
     FLUID_TYPE_LIST,
-    FLUID_TYPE_OBJECT,
-    FLUID_TYPE_SENTINEL
+    FLUID_TYPE_CONTAINER,
 };
 
 typedef struct {
@@ -85,7 +82,9 @@ struct fluid_object_s {
     node_t node;
 };
 
-ferror_t fluid_object_new(const char *identifier, fluid_object_t **object);
+void fluid_object_dump(fluid_object_t *obj);
+ferror_t fluid_object_new(const char *identifier, fluid_object_t *parent,
+                          fluid_object_t **object);
 ferror_t fluid_object_add_value(fluid_object_t *obj, const char *value);
 ferror_t fluid_object_nest(fluid_object_t *parent, fluid_object_t *child);
 ferror_t fluid_object_cast_containier(fluid_object_t *obj);

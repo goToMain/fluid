@@ -29,9 +29,7 @@ enum yaml_reader_state_e {
     YRS_OBJ_NEW,
     YRS_OBJ_KEY,
     YRS_OBJ_VAL,
-    YRS_STOP,
-    YRS_ERROR,
-    YRS_SENTINEL
+    YRS_STOP
 };
 
 typedef struct {
@@ -48,19 +46,47 @@ typedef struct {
     fluid_object_t *root;
 } config_reader_t;
 
-#define debug_ptr(r) fprintf(stderr, "cur: %p par: %p\n", r->current, r->parent)
+const char *yrs_state_name(enum yaml_reader_state_e state)
+{
+    switch (state) {
+    case YRS_START:      return "START";
+    case YRS_OBJ_NEW:    return "OBJ_NEW";
+    case YRS_OBJ_KEY:    return "OBJ_KEY";
+    case YRS_OBJ_VAL:    return "OBJ_VAL";
+    case YRS_STOP:       return "STOP";
+    }
+    return "";
+}
+
+const char *yaml_event_name(yaml_event_type_t event)
+{
+    switch (event) {
+    case YAML_NO_EVENT:               return "NO_EVENT";
+    case YAML_STREAM_START_EVENT:     return "STREAM_START_EVENT";
+    case YAML_STREAM_END_EVENT:       return "STREAM_END_EVENT";
+    case YAML_DOCUMENT_START_EVENT:   return "DOCUMENT_START_EVENT";
+    case YAML_DOCUMENT_END_EVENT:     return "DOCUMENT_END_EVENT";
+    case YAML_ALIAS_EVENT:            return "ALIAS_EVENT";
+    case YAML_SCALAR_EVENT:           return "SCALAR_EVENT";
+    case YAML_SEQUENCE_START_EVENT:   return "SEQUENCE_START_EVENT";
+    case YAML_SEQUENCE_END_EVENT:     return "SEQUENCE_END_EVENT";
+    case YAML_MAPPING_START_EVENT:    return "MAPPING_START_EVENT";
+    case YAML_MAPPING_END_EVENT:      return "MAPPING_END_EVENT";
+    }
+    return "";
+}
+
+#define EVENT_VAL(e) (char *)e->data.scalar.value
 
 #define object_descend(r)  do {                   \
-debug_ptr(r);\
-        r->level++;                               \
         r->parent = r->current;                   \
         r->current = NULL;                        \
+        r->level++;                               \
     } while (0);
 
 #define object_ascend(r) do {                                               \
-        debug_ptr(r);\
         if (r->level <= 0)                                                  \
-            fexcept(FERROR_CONFIG_NESTING);                                 \
+            fexcept_printf(FERROR_CONFIG_NESTING, "nest-level: %d", r->level);     \
         r->current = r->current->parent;                                    \
         r->parent = r->current ? r->current->parent : NULL;                 \
         r->level--;                                                         \
@@ -69,7 +95,11 @@ debug_ptr(r);\
 static ferror_t
 config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
 {
-    ferror_t e;
+#if 1
+    printf("YRS: %s Event: %s\n",
+           yrs_state_name(r->state),
+           yaml_event_name(event->type));
+#endif
 
     switch (r->state) {
     case YRS_START:
@@ -84,14 +114,20 @@ config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
     case YRS_OBJ_NEW:
         switch(event->type) {
         case YAML_MAPPING_START_EVENT:
-            object_descend(r);
-            e = fluid_object_new(NULL, &r->current);
-            fexcept_proagate(e);
-            fluid_object_cast_containier(r->current);
+            FEX( fluid_object_cast_containier(r->current) );
             r->state = YRS_OBJ_KEY;
             break;
         case YAML_DOCUMENT_END_EVENT:
             r->state = YRS_STOP;
+            break;
+        case YAML_MAPPING_END_EVENT:
+            FEX( fluid_object_nest(r->parent ? r->parent : r->root, r->current) );
+            object_ascend(r);
+            break;
+        case YAML_SCALAR_EVENT:
+            object_descend(r);
+            FEX( fluid_object_new(EVENT_VAL(event), r->parent, &r->current) );
+            r->state = YRS_OBJ_VAL;
             break;
         default: fexcept(FERROR_CONFIG_EVENT);
         }
@@ -100,35 +136,33 @@ config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
         switch(event->type) {
         case YAML_SCALAR_EVENT:
             object_descend(r);
-            e = fluid_object_new((char *)event->data.scalar.value, &r->current);
-            fexcept_proagate(e);
+            FEX( fluid_object_new(EVENT_VAL(event), r->parent, &r->current) );
             r->state = YRS_OBJ_VAL;
             break;
         case YAML_MAPPING_END_EVENT:
+            FEX( fluid_object_nest(r->parent ? r->parent : r->root, r->current) );
             object_ascend(r);
             r->state = YRS_OBJ_NEW;
             break;
-        default:
-            break;
+        default: fexcept(FERROR_CONFIG_EVENT);
         }
         break;
     case YRS_OBJ_VAL:
         switch(event->type) {
         case YAML_SCALAR_EVENT:
-            e = fluid_object_add_value(r->current, (char *)event->data.scalar.value);
-            fexcept_proagate(e);
-            e = fluid_object_nest(r->parent, r->current);
-            fexcept_proagate(e);
+            FEX( fluid_object_add_value(r->current, EVENT_VAL(event)) );
+            FEX( fluid_object_nest(r->parent ? r->parent : r->root, r->current) );
             object_ascend(r);
             r->state = YRS_OBJ_KEY;
             break;
-        default:
+        case YAML_MAPPING_START_EVENT:
+            FEX( fluid_object_cast_containier(r->current) );
+            r->state = YRS_OBJ_KEY;
             break;
+        default: fexcept(FERROR_CONFIG_EVENT);
         }
         break;
     case YRS_STOP:
-        break;
-    case YRS_ERROR:
         break;
     }
 
@@ -143,14 +177,14 @@ ferror_t config_parse_yaml_buf(const char *input, size_t length)
     config_reader_t r;
 
     memset(&r, 0, sizeof(config_reader_t));
-    e = fluid_object_new("config", &r.root);
-    fexcept_proagate(e);
+
+    FEX( fluid_object_new("config", NULL, &r.root) );
     r.current = r.root;
 
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_string(&parser, (unsigned char *)input, length);
 
-    while (r.state != YRS_STOP || r.state != YRS_ERROR) {
+    while (r.state != YRS_STOP) {
 
         if (!yaml_parser_parse(&parser, &event))
             fexcept_goto(FERROR_CONFIG_PARSER, error);
@@ -160,6 +194,8 @@ ferror_t config_parse_yaml_buf(const char *input, size_t length)
 
         yaml_event_delete(&event);
     }
+
+    fluid_object_dump(r.root);
 
 error:
     yaml_parser_delete(&parser);

@@ -44,15 +44,24 @@ const char *ferror_type(ferror_t e);
 const char *ferror_message(ferror_t e);
 
 #define fexcept_print(e)                                                 \
-    fprintf(stderr, "EXCEPTION: %s at %s - %s\n",                        \
-            ferror_type(e), __FUNCTION__, ferror_message(e));            \
+    fprintf(stderr, "EXCEPTION: %s at %s():%d - %s\n",                   \
+            ferror_type(e), __FUNCTION__, __LINE__, ferror_message(e));  \
 
 #ifndef NDEBUG
 #define fexcept_proagate_print(e)                                        \
-    fprintf(stderr, "\t while at %s\n", __FUNCTION__);
+    fprintf(stderr, "\t while at %s():%d\n", __FUNCTION__, __LINE__);
 #else
 #define fexcept_proagate_print(e)
 #endif
+
+#define fexcept_printf(e, ...) \
+    do { \
+        fprintf(stderr, "EXCEPTION: %s at %s():%d - %s\nEXCEPTION: ",     \
+                ferror_type(e), __FUNCTION__, __LINE__, ferror_message(e));  \
+        fprintf(stderr, ## __VA_ARGS__); \
+        fprintf(stderr, "\n"); \
+        return e; \
+    } while (0)
 
 #define fexcept(e)                                                       \
     do {                                                                 \
@@ -80,6 +89,13 @@ const char *ferror_message(ferror_t e);
             fexcept_proagate_print(e);                                   \
             goto l;                                                      \
         }                                                                \
+    } while (0)
+
+#define FEX(call)                \
+    do {                              \
+        ferror_t err = call;          \
+        if (err != FERROR_OK)         \
+            fexcept_proagate(err);    \
     } while (0)
 
 #endif  /* _FERROR_H_ */

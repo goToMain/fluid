@@ -67,7 +67,8 @@ enum liq_kw liquid_get_kw(const char *literal)
 {
     enum liq_kw i;
     enum liq_blk j;
-    int len, is_end = 0;
+    size_t len;
+    int is_end = 0;
 
     if (strncmp(literal, "end", 3) == 0) {
         literal += 3;
