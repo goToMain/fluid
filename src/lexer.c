@@ -338,6 +338,51 @@ void lexer_grabage_collect(fluid_t *ctx)
     }
 }
 
+static const char *get_lex_type_cstr(const lexer_block_t *pblk)
+{
+    enum lexer_block type = pblk->type;
+    if (type == LEXER_BLOCK_DATA)
+        return "DATA";
+    if (type == LEXER_BLOCK_OBJECT)
+        return "OBJECT";
+    if (type == LEXER_BLOCK_TAG)
+        return "TAG";
+    return "NONE";
+}
+
+void print_lex_block(const lexer_block_t *pblk)
+{
+    printf("\r\n================================\r\n");
+    printf("Lexed Block (%s)\r\n", get_lex_type_cstr(pblk));
+    switch (pblk->type) {
+    case LEXER_BLOCK_DATA:
+    {
+        printf("\tData: %s\r\n", pblk->content.buf);
+        break;
+    }
+    case LEXER_BLOCK_OBJECT:
+    {
+        printf("\tIdentifier: %s\r\n", pblk->tok.obj.identifier);
+        break;
+    }
+    case LEXER_BLOCK_TAG:
+    {
+        printf("\tLiq Type: %s\r\n", liquid_get_cstr(pblk->tok.tag.keyword));
+        if (pblk->tok.tag.tokens == NULL)
+            break;
+        for (int i = 0; pblk->tok.tag.tokens[i]; i++)
+            printf("\tTag[%d]: %s\r\n", i, pblk->tok.tag.tokens[i]);
+            
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+    printf("================================\r\n\r\n");
+}
+
 void lexer_setup(fluid_t *ctx)
 {
     list_init(&ctx->lex_blocks);

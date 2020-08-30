@@ -34,8 +34,8 @@ typedef struct {
 
 typedef struct {
     char *identifier;
-    int num_filters;
     liq_filter_t *filters;
+    int num_filters;
 } lexer_token_obj_t;
 
 typedef union {
@@ -57,5 +57,7 @@ void lexer_grabage_collect(fluid_t *ctx);
 void lexer_remove_block(fluid_t *ctx, lexer_block_t *blk);
 void lexer_block_cast_to_data(lexer_block_t *blk);
 int lexer_merge_blocks(fluid_t *ctx, lexer_block_t *prim, lexer_block_t *sec);
+
+void print_lex_block(const lexer_block_t *pblk);
 
 #endif /* _LEXER_H_ */
