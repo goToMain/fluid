@@ -231,6 +231,7 @@ int lexer_tokenize_tag(lexer_block_t *blk)
         }
     }
 
+    blk->tok.tag.tokens = NULL;
     if (p && split_string(p, " ", &blk->tok.tag.tokens)) {
         LOG_ERR("tag parse errors");
         return -1;
