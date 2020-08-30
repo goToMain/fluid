@@ -31,6 +31,7 @@ struct pt_node_text {
 struct pt_node_object {
     char *identifier;
     liq_filter_t *filters;
+    int num_filters;
 };
 
 struct pt_node_statement {
@@ -39,7 +40,7 @@ struct pt_node_statement {
 
 struct pt_node_assign {
     char *identifier;
-    struct pt_node *expression;
+    char *expression;
     /** TODO: Must have a liq_const_t *default; */
 };
 
@@ -64,6 +65,7 @@ struct pt_node_loop {
 struct pt_node {
     node_t node;
     enum pt_node_type type;
+    enum liq_kw liq_kw;
     union {
         struct pt_node_branch branch;
         struct pt_node_loop loop;
@@ -71,6 +73,7 @@ struct pt_node {
         struct pt_node_assign assign;
         struct pt_node_compare compare;
         struct pt_node_object object;
+        struct pt_node_statement statement;
     };
     list_t children;
     struct pt_node *parent;
