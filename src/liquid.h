@@ -10,34 +10,40 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define LIQ_KW_MACRO(OPERATION) \
+        OPERATION(LIQ_KW_NONE)      \
+        OPERATION(LIQ_KW_ASSIGN)    \
+        OPERATION(LIQ_KW_BREAK)     \
+        OPERATION(LIQ_KW_CAPTURE)   \
+        OPERATION(LIQ_KW_CASE)      \
+        OPERATION(LIQ_KW_WHEN)      \
+        OPERATION(LIQ_KW_COMMENT)   \
+        OPERATION(LIQ_KW_CONTINUE)  \
+        OPERATION(LIQ_KW_DECREMENT) \
+        OPERATION(LIQ_KW_FOR)       \
+        OPERATION(LIQ_KW_IF)        \
+        OPERATION(LIQ_KW_ELSIF)     \
+        OPERATION(LIQ_KW_ELSE)      \
+        OPERATION(LIQ_KW_INCREMENT) \
+        OPERATION(LIQ_KW_INCLUDE)   \
+        OPERATION(LIQ_KW_RAW)       \
+        OPERATION(LIQ_KW_UNLESS)    \
+        OPERATION(LIQ_KW_SENTINEL)  \
+        OPERATION(LIQ_KW_ENDIF)     \
+        OPERATION(LIQ_KW_ENDCAPTURE)\
+        OPERATION(LIQ_KW_ENDCASE)   \
+        OPERATION(LIQ_KW_ENDCOMMENT)\
+        OPERATION(LIQ_KW_ENDFOR)    \
+        OPERATION(LIQ_KW_ENDRAW)    \
+        OPERATION(LIQ_KW_ENDUNLESS) \
+
+#define LIQ_OP_TO_ENUM(x)           x,
+
 enum liq_kw {
-    LIQ_KW_NONE,
-    LIQ_KW_ASSIGN,
-    LIQ_KW_BREAK,
-    LIQ_KW_CAPTURE,
-    LIQ_KW_CASE,
-    LIQ_KW_WHEN,
-    LIQ_KW_COMMENT,
-    LIQ_KW_CONTINUE,
-    LIQ_KW_DECREMENT,
-    LIQ_KW_FOR,
-    LIQ_KW_IF,
-    LIQ_KW_ELSIF,
-    LIQ_KW_ELSE,
-    LIQ_KW_INCREMENT,
-    LIQ_KW_INCLUDE,
-    LIQ_KW_RAW,
-    LIQ_KW_UNLESS,
-    LIQ_KW_SENTINEL,
-    /* virtual keywords */
-    LIQ_KW_ENDIF,
-    LIQ_KW_ENDCAPTURE,
-    LIQ_KW_ENDCASE,
-    LIQ_KW_ENDCOMMENT,
-    LIQ_KW_ENDFOR,
-    LIQ_KW_ENDRAW,
-    LIQ_KW_ENDUNLESS,
+    LIQ_KW_MACRO(LIQ_OP_TO_ENUM)
 };
+
+#undef LIQ_OP_TO_ENUM
 
 enum liq_blk {
     LIQ_BLK_CASE,
@@ -65,9 +71,17 @@ enum liq_operators {
 };
 
 enum liq_kw liquid_get_kw(const char *literal);
+enum liq_operators liquid_get_optor(const char *op);
 enum liq_blk liquid_get_blk(enum liq_kw kw);
 bool liquid_is_block_begin(enum liq_kw kw);
 bool liquid_is_block_end(enum liq_kw kw);
+bool liquid_is_tag_bare(enum liq_kw kw);
+bool liquid_is_tag_lone(enum liq_kw kw);
+bool liquid_is_tag_enclosing(enum liq_kw kw);
 bool liquid_is_valid(enum liq_blk parent, enum liq_kw kw);
+
+enum liq_kw liquid_get_start_tag(enum liq_kw kw);
+enum liq_kw liquid_get_end_tag(enum liq_kw kw);
+const char *liquid_get_cstr(enum liq_kw kw);
 
 #endif /* _LIQUID_H_ */
