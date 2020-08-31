@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <yaml.h>
 #include <utils/file.h>
+#include <utils/stack.h>
 
 #include "objects.h"
 #include "ferrors.h"
@@ -40,10 +41,8 @@ typedef struct {
         uint32_t in_list       :1;
     } flags;
 
+    stack_t stack;
     fluid_object_t *current;
-    fluid_object_t *previous;
-    fluid_object_t *parent;
-    fluid_object_t *root;
 } config_reader_t;
 
 const char *yrs_state_name(enum yaml_reader_state_e state)
@@ -78,19 +77,35 @@ const char *yaml_event_name(yaml_event_type_t event)
 
 #define EVENT_VAL(e) (char *)e->data.scalar.value
 
-#define object_descend(r)  do {                   \
-        r->parent = r->current;                   \
-        r->current = NULL;                        \
-        r->level++;                               \
-    } while (0);
+// #define object_descend(r)  do {                   \
+//         r->current->parent = r->current;          \
+//         r->parent = r->current;                   \
+//         r->current = NULL;                        \
+//         r->level++;                               \
+//     } while (0);
 
-#define object_ascend(r) do {                                               \
-        if (r->level <= 0)                                                  \
-            fexcept_printf(FERROR_CONFIG_NESTING, "nest-level: %d", r->level);     \
-        r->current = r->current->parent;                                    \
-        r->parent = r->current ? r->current->parent : NULL;                 \
-        r->level--;                                                         \
-    } while (0);
+// #define object_ascend(r) do {                                               \
+//         if (r->level <= 0)                                                  \
+//             fexcept(FERROR_CONFIG_NESTING);                                 \
+//         r->current = r->current->parent;                                    \
+//         r->parent = r->current->parent;                                     \
+//         r->level--;                                                         \
+//     } while (0);
+
+void object_descend(config_reader_t *r)
+{
+    stack_push(&r->stack, &r->current->node);
+}
+
+ferror_t object_ascend(config_reader_t *r)
+{
+    stack_node_t node;
+    fluid_object_t *obj;
+
+    if (stack_pop(&r->stack, &node))
+        fexcept(FERROR_CONFIG_NESTING);
+    obj = CONTAINER_OF(&node, fluid_object_t, node);
+}
 
 static ferror_t
 config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
@@ -118,6 +133,7 @@ config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
             r->state = YRS_OBJ_KEY;
             break;
         case YAML_DOCUMENT_END_EVENT:
+        case YAML_STREAM_END_EVENT:
             r->state = YRS_STOP;
             break;
         case YAML_MAPPING_END_EVENT:
@@ -126,6 +142,7 @@ config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
             break;
         case YAML_SCALAR_EVENT:
             object_descend(r);
+            stack_push(&r->stack, &r->current->node);
             FEX( fluid_object_new(EVENT_VAL(event), r->parent, &r->current) );
             r->state = YRS_OBJ_VAL;
             break;
@@ -136,6 +153,8 @@ config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
         switch(event->type) {
         case YAML_SCALAR_EVENT:
             object_descend(r);
+            stack_push(&r->stack, &r->current->node);
+            printf("New Key: %s\n", EVENT_VAL(event));
             FEX( fluid_object_new(EVENT_VAL(event), r->parent, &r->current) );
             r->state = YRS_OBJ_VAL;
             break;
@@ -150,6 +169,7 @@ config_process_yaml_event(config_reader_t *r, yaml_event_t *event)
     case YRS_OBJ_VAL:
         switch(event->type) {
         case YAML_SCALAR_EVENT:
+            printf("New Val: %s\n", EVENT_VAL(event));
             FEX( fluid_object_add_value(r->current, EVENT_VAL(event)) );
             FEX( fluid_object_nest(r->parent ? r->parent : r->root, r->current) );
             object_ascend(r);
@@ -177,9 +197,10 @@ ferror_t config_parse_yaml_buf(const char *input, size_t length)
     config_reader_t r;
 
     memset(&r, 0, sizeof(config_reader_t));
+    stack_init(&r.stack);
 
-    FEX( fluid_object_new("config", NULL, &r.root) );
-    r.current = r.root;
+    FEX( fluid_object_new("config", NULL, &r.current) );
+    stack_push(&r.stack, &r.current->node);
 
     yaml_parser_initialize(&parser);
     yaml_parser_set_input_string(&parser, (unsigned char *)input, length);

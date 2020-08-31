@@ -1,9 +1,8 @@
 # Fluid - A liquid template renderer
 
 Fluid is a tool used to parse/render liquid templated source files to plain
-text files. Typical use case is HTML files with liquid tags.
-
-Read more about liquid grammar [here][1].
+text files. A typical use case is HTML files with liquid tags. Read more about
+liquid grammar [here][1].
 
 ## Dependencies
 
@@ -13,8 +12,9 @@ Read more about liquid grammar [here][1].
 ## Build
 
 ``` bash
-git clone https://github.com/goToMain/fluid
-cd fluid && mkdir build && cd build
+git clone https://github.com/goToMain/fluid --recurse-submodules
+cd fluid
+mkdir build && cd build
 cmake ..
 make
 ```

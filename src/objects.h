@@ -41,7 +41,6 @@ typedef struct {
 } fluid_ptype_boolean_t;
 
 typedef struct {
-    node_t node;
     enum fluid_ptype_e type;
     union {
         fluid_ptype_number_t number;

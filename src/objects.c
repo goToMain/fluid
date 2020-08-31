@@ -10,29 +10,6 @@
 
 #include "objects.h"
 
-/*
-
-Idea Sketch:
-
-my_var.bar = 5
-    bar::FLUID_PTYPE_NUMBER
-    my_var::FLUID_TYPE_CONTAINER
-
-my_var.foo = "string"
-    foo::FLUID_PTYPE_STRING
-    my_var::FLUID_TYPE_CONTAINER
-
-my_var.baz = [ "This", "is", "a", "list" ]
-    baz::FLUID_TYPE_LIST
-    my_var::FLUID_TYPE_CONTAINER
-
-    my_var.baz[3]
-        baz[3]::FLUID_PTYPE_STRING
-        baz::FLUID_TYPE_LIST
-        my_var::FLUID_TYPE_CONTAINER
-
-*/
-
 #define STRING_FALSE(s)  (s == NULL || *s == '\0')
 #define IS_STRING_ISH(s) (*(s) == '"' || *(s) == '\'')
 #define IS_NUMBER_ISH(s) (*(s) == '+' || *(s) == '-' || *(s) == '.' || isdigit(*(s)))

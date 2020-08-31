@@ -30,18 +30,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-add_subdirectory(utils)
+# FIXME: C-Utils must set these in parent scope if included as a
+# sub direcrotry/
 set(LIBUTILS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/utils/include)
 set(LIBUTILS_LIBRARIES utils)
 
+add_subdirectory(utils)
 add_subdirectory(src)
 
 ## uninstall target
 add_custom_target(uninstall
     COMMAND xargs rm < ${CMAKE_BINARY_DIR}/install_manifest.txt
-)
-
-## check target
-add_custom_target(check
-	COMMAND make check_utils # test utils too
 )
