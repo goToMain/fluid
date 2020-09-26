@@ -6,6 +6,8 @@
 
 #include <utils/logger.h>
 
+#include <ctype.h>
+
 #include "fluid.h"
 #include "lexer.h"
 
@@ -17,6 +19,8 @@ enum lexer_state {
     LEXER_BLOCK_STATE_TAG,
     LEXER_BLOCK_STATE_ERROR,
 };
+
+#define is_liq_syntax(s)   ((s == LEXER_BLOCK_STATE_OBJECT) || (s == LEXER_BLOCK_STATE_TAG))
 
 /* Transform "{% TAG %}" or "{{ OBJ }}" as "TAG" or "OBJ" */
 static int lexer_clean_liquid_markup(char *buf, size_t len)
@@ -108,24 +112,31 @@ int lexer_lex_blocks(fluid_t *ctx)
 {
     char c1, c2;
     size_t current = 0, start = 0;
+    bool just_spaces = true;
     enum lexer_state state = LEXER_BLOCK_STATE_DATA;
+    enum lexer_state last_state = state;
 
     while (current < (ctx->buf_size - 1)) {
         c1 = ctx->buf[current];
         c2 = ctx->buf[current + 1];
         switch(state) {
         case LEXER_BLOCK_STATE_DATA:
+            just_spaces = just_spaces & isspace(c1);
             if (c1 == '{' && c2 == '%') {
-                lexer_block_add(ctx, LEXER_BLOCK_DATA, start,
-                        current - start);
+                if (is_liq_syntax(last_state) && !just_spaces)
+                    lexer_block_add(ctx, LEXER_BLOCK_DATA, start,
+                            current - start);
                 start = current;
+                last_state = state;
                 state = LEXER_BLOCK_STATE_TAG;
                 break;
             }
             if (c1 == '{' && c2 == '{') {
-                lexer_block_add(ctx, LEXER_BLOCK_DATA, start,
-                        current - start);
+                if (is_liq_syntax(last_state) && !just_spaces)
+                    lexer_block_add(ctx, LEXER_BLOCK_DATA, start,
+                            current - start);
                 start = current;
+                last_state = state;
                 state = LEXER_BLOCK_STATE_OBJECT;
                 break;
             }
@@ -136,6 +147,8 @@ int lexer_lex_blocks(fluid_t *ctx)
                 lexer_block_add(ctx, LEXER_BLOCK_TAG, start,
                         current - start + 2);
                 start = current + 2;
+                last_state = state;
+                just_spaces = true;
                 state = LEXER_BLOCK_STATE_DATA;
             }
             break;
@@ -145,6 +158,8 @@ int lexer_lex_blocks(fluid_t *ctx)
                 lexer_block_add(ctx, LEXER_BLOCK_OBJECT, start,
                         current - start + 2);
                 start = current + 2;
+                last_state = state;
+                just_spaces = true;
                 state = LEXER_BLOCK_STATE_DATA;
             }
             break;
